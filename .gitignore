@@ -1,0 +1,5 @@
+bin/
+obj/
+*.userprefs
+node_modules/
+packages/
