@@ -1,0 +1,74 @@
+using System;
+using System.Collections.Generic;
+
+namespace HttpTwo
+{
+    public class DataFrame : Frame
+    {
+        uint padLength = 0;
+        public uint PadLength { 
+            get { 
+                return padLength;
+            }
+            set {
+                if (value > 255)
+                    throw new ArgumentOutOfRangeException ("value", "Must be less than or equal to 255");
+                padLength = value;
+            }
+        }
+        public bool Padded { get; set; }
+        public bool EndStream { get; set; }
+
+        // type=0x0
+        public override FrameType Type {
+            get { return FrameType.Data; }
+        }
+
+        public override byte Flags {
+            get { 
+                byte endStream = EndStream ? (byte)0x1 : (byte)0x0;
+                byte padded = Padded ? (byte)0x8 : (byte)0x0;
+
+                return (byte)(endStream | padded);
+            }
+        }
+
+        public byte[] Data { get; set; }
+
+        public override IEnumerable<byte> Payload {
+            get {
+                var data = new List<byte> ();
+
+                // Add the padding length 
+                data.Add ((byte)padLength);
+
+                // Add the frame data
+                data.AddRange (Data);
+
+                // Add our padding
+                for (int i = 0; i < padLength; i++)
+                    data.Add (0x0);              
+
+                return data;
+            }
+        }
+
+        public override void ParsePayload (byte[] payloadData, FrameHeader frameHeader)
+        {
+            EndStream = (frameHeader.Flags & 0x1) == 0x1;
+            Padded = (frameHeader.Flags & 0x8) == 0x8;
+
+            var index = 0;
+
+            if (Padded) {
+                padLength = (ushort)payloadData [index];
+                index++;
+            }
+
+            // Data will be length of total payload - pad length value - the actual padding
+            Data = new byte[payloadData.Length - (index + padLength)];
+            Array.Copy (payloadData, index, Data, 0, Data.Length);
+        }
+    }
+    
+}
