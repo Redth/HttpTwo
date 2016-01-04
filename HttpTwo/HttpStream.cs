@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using System.Threading;
 
 namespace HttpTwo
 {
@@ -24,6 +25,8 @@ namespace HttpTwo
             return nextId;
         }
 
+        TaskCompletionSource<object> tcsEndStream;
+
         public HttpStream ()            
         {            
             Init (GetNextId ());
@@ -39,6 +42,8 @@ namespace HttpTwo
             Frames = new List<Frame> ();
             StreamIdentifer = streamIdentifier;
             State = StreamState.Idle;
+
+            tcsEndStream = new TaskCompletionSource<object> ();
         }
 
         public uint StreamIdentifer { get; private set; }
@@ -55,22 +60,35 @@ namespace HttpTwo
 
             if (frame.Type == FrameType.RstStream || frame.IsEndStream) {
                 State = StreamState.Closed;
-                OnFrameReceived?.Invoke (frame);
-                return;
-            }
-            if (State == StreamState.Idle) {
-
-                if (frame.Type == FrameType.Headers) {
-                    State = StreamState.Open;
+            } else {
+                
+                if (State == StreamState.Idle) {
+                    if (frame.Type == FrameType.Headers) {
+                        State = StreamState.Open;
+                    }
                 }
-            }
-            if (frame.Type == FrameType.PushPromise && State == StreamState.Idle) {
-                State = StreamState.ReservedRemote;
+                if (frame.Type == FrameType.PushPromise && State == StreamState.Idle) {
+                    State = StreamState.ReservedRemote;
+                }
             }
 
             // Raise the event
             OnFrameReceived?.Invoke (frame);
+
+            if (State == StreamState.Closed && !tcsEndStream.Task.IsCompleted)
+                tcsEndStream.SetResult (null);
         }
+
+        public async Task<bool> WaitForEndStreamAsync (TimeSpan timeout)
+        {                        
+            if (await Task.WhenAny (tcsEndStream.Task, Task.Delay (timeout)) == tcsEndStream.Task) {
+                // task completed within timeout
+                return true;
+            } 
+
+            return false;
+        }
+
 
         public delegate void FrameReceivedDelegate (Frame frame);
         public event FrameReceivedDelegate OnFrameReceived;
