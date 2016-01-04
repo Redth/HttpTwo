@@ -7,6 +7,7 @@ using System.Net.Sockets;
 using System.Threading.Tasks;
 using System.Threading;
 using System.Net;
+using System.Security.Cryptography.X509Certificates;
 
 namespace HttpTwo
 {
@@ -42,7 +43,7 @@ namespace HttpTwo
             Endpoint = endPoint;
         }
 
-
+        public X509CertificateCollection Certificates { get; set; }
         public bool UseTls { get; private set; }
         public IPEndPoint Endpoint { get; private set; }
         public TimeSpan ConnectionTimeout { get; set; }
@@ -69,7 +70,11 @@ namespace HttpTwo
 
                 var hostEntry = await Dns.GetHostEntryAsync (Endpoint.Address);
 
-                await sslStream.AuthenticateAsClientAsync (hostEntry.HostName);
+                await sslStream.AuthenticateAsClientAsync (
+                    hostEntry.HostName, 
+                    Certificates ?? new X509CertificateCollection (), 
+                    System.Security.Authentication.SslProtocols.Tls12, 
+                    false);
 
                 clientStream = sslStream;
             } else {
