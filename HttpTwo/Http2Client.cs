@@ -37,19 +37,26 @@ namespace HttpTwo
 
         public async Task<Http2Response> Send (Uri uri, HttpMethod method, NameValueCollection headers = null, byte[] data = null)
         {
+            return await Send (new CancellationToken (), uri, method, headers, data);
+        }
+
+        public async Task<Http2Response> Send (CancellationToken cancelToken, Uri uri, HttpMethod method, NameValueCollection headers = null, byte[] data = null)
+        {
             var semaphoreClose = new SemaphoreSlim(0);
 
             await connection.Connect ();
 
             var stream = await connection.CreateStream ();
-            stream.OnFrameReceived += (frame) =>
+            stream.OnFrameReceived += async (frame) =>
             {
-                if (stream.State == StreamState.Closed)
-                    semaphoreClose.Release();
+                // Check for an end of stream state
+                if (stream.State == StreamState.HalfClosedRemote || stream.State == StreamState.Closed)
+                    semaphoreClose.Release ();                
             };
 
-            //await connection.SendFrame(new SettingsFrame());
 
+            // TODO: Need to send multiple frames if the frame content length is too big
+            // This will require checking what the actual 
             var headersFrame = new HeadersFrame (stream.StreamIdentifer);
             headersFrame.Headers.Add (":method", method.Method.ToUpperInvariant ());
             headersFrame.Headers.Add (":path", uri.PathAndQuery);
@@ -66,7 +73,6 @@ namespace HttpTwo
                 var dataFrame = new DataFrame (stream.StreamIdentifer);
                 dataFrame.Data = data;
                 dataFrame.EndStream = true;
-                
 
                 await connection.SendFrame (dataFrame);
 
@@ -76,9 +82,9 @@ namespace HttpTwo
                 await connection.SendFrame (headersFrame);
             }
 
-            if (!await semaphoreClose.WaitAsync (connection.ConnectionTimeout))
+            if (!await semaphoreClose.WaitAsync (connection.ConnectionTimeout, cancelToken))
                 throw new TimeoutException ();
-            
+
             var responseData = new List<byte> ();
             var responseHeaders = new NameValueCollection ();
 
@@ -106,7 +112,9 @@ namespace HttpTwo
             
             var statusCode = HttpStatusCode.OK;
             Enum.TryParse<HttpStatusCode> (strStatus, out statusCode);
-                
+
+            // Remove the stream from being tracked since we're done with it
+            await connection.CleanupStream (stream.StreamIdentifer);
 
             return new Http2Response {
                 Status = statusCode,
