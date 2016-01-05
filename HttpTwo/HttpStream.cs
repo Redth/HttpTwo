@@ -38,6 +38,7 @@ namespace HttpTwo
         void Init (uint streamIdentifier)
         {
             Frames = new List<Frame> ();
+            SentFrames = new List<Frame> ();
             StreamIdentifer = streamIdentifier;
             State = StreamState.Idle;
         }
@@ -48,30 +49,77 @@ namespace HttpTwo
 
         public List<Frame> Frames { get;set; }
 
+        public List<Frame> SentFrames { get;set; }
+
 
         public void ProcessFrame (Frame frame)
         {   
             // Add frame to the list of history
             Frames.Add (frame);
 
-            if (frame.Type == FrameType.RstStream || frame.IsEndStream || frame.Type == FrameType.GoAway) {
-                State = StreamState.Closed;
-            } else {
-                
-                if (State == StreamState.Idle) {
-                    if (frame.Type == FrameType.Headers) {
-                        State = StreamState.Open;
-                    }
-                }
-                if (frame.Type == FrameType.PushPromise && State == StreamState.Idle) {
+            if (State == StreamState.Idle) {
+                if (frame.Type == FrameType.Headers)
+                    State = StreamState.Open;
+                else if (frame.Type == FrameType.PushPromise)
                     State = StreamState.ReservedRemote;
-                }
+                else if (frame.Type == FrameType.Priority)
+                    ;
+                else
+                    ; // TODO: PROTOCOL_ERROR
+            } else if (State == StreamState.ReservedLocal) {
+                if (frame.Type == FrameType.RstStream)
+                    State = StreamState.Closed;
+            } else if (State == StreamState.HalfClosedRemote) {
+                if (frame.Type == FrameType.RstStream)
+                    State = StreamState.Closed;
+            } else if (State == StreamState.Open) {
+                if (frame.IsEndStream)
+                    State = StreamState.HalfClosedRemote;
+                if (frame.Type == FrameType.RstStream)
+                    State = StreamState.Closed;
+            } else if (State == StreamState.ReservedRemote) {
+                if (frame.Type == FrameType.Headers)
+                    State = StreamState.HalfClosedLocal;
+                else if (frame.Type == FrameType.RstStream)
+                    State = StreamState.Closed;
+            } else if (State == StreamState.HalfClosedLocal) {
+                if (frame.IsEndStream || frame.Type == FrameType.RstStream)
+                    State = StreamState.Closed;
             }
 
             // Raise the event
-            var eh = OnFrameReceived;
-            if (eh != null)
-                eh(frame);            
+            OnFrameReceived?.Invoke (frame);
+        }
+
+        public void ProcessSentFrame (Frame frame)
+        {
+            SentFrames.Add (frame);
+
+            if (State == StreamState.Idle) {
+                if (frame.Type == FrameType.PushPromise)
+                    State = StreamState.ReservedLocal;
+                else if (frame.Type == FrameType.Headers)
+                    State = StreamState.Open;
+            } else if (State == StreamState.ReservedLocal) {
+                if (frame.Type == FrameType.Headers)
+                    State = StreamState.HalfClosedRemote;
+                else if (frame.Type == FrameType.RstStream)
+                    State = StreamState.Closed;
+            } else if (State == StreamState.HalfClosedRemote) {
+                if (frame.IsEndStream || frame.Type == FrameType.RstStream)
+                    State = StreamState.Closed;                
+            } else if (State == StreamState.Open) {
+                if (frame.IsEndStream)
+                    State = StreamState.HalfClosedLocal;
+                if (frame.Type == FrameType.RstStream)
+                    State = StreamState.Closed;
+            } else if (State == StreamState.ReservedRemote) {
+                if (frame.Type == FrameType.RstStream)
+                    State = StreamState.Closed;
+            } else if (State == StreamState.HalfClosedLocal) {
+                if (frame.Type == FrameType.RstStream)
+                    State = StreamState.Closed;
+            }
         }
         
         public delegate void FrameReceivedDelegate (Frame frame);
