@@ -51,7 +51,10 @@ namespace HttpTwo
             ErrorCode = errorCode;
 
             if (payloadData.Length > 8)
-                Array.Copy (payloadData, 8, AdditionalDebugData, 0, payloadData.Length - 8);            
+            {
+                AdditionalDebugData = new byte[payloadData.Length - 8];
+                Array.Copy(payloadData, 8, AdditionalDebugData, 0, payloadData.Length - 8);
+            }
         }
     }
     
