@@ -9,11 +9,14 @@ It's currently very untested and only partially implemented.
 **What's working:**
  - All frame types can be parsed and can be generated to send to a stream
  - HPack for frames that send headers
+ - Simple requests should work
+ - HttpClient message handler is partially implemented
 
 **What's not working / not implemented:**
  - Secure connections require TLS 1.2 according to the RFC so they won't work on Mono at this point
  - No flow control is in place
  - Stream priorities aren't implemented
  - Push Promise isn't implemented
+ - HttpClient message handler needs to be completed
  - Much more test coverage needed
 
