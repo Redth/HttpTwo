@@ -96,7 +96,7 @@ namespace HttpTwo
             }, TaskContinuationOptions.OnlyOnFaulted);
 
             // Send an un-ACK'd settings frame
-            await SendFrame(new SettingsFrame { EnablePush = false });
+            await SendFrame(new SettingsFrame()); // { EnablePush = false });
         }
 
         void Disconnect ()
