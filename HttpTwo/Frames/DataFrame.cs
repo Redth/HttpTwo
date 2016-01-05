@@ -52,7 +52,8 @@ namespace HttpTwo
                 data.Add ((byte)padLength);
 
                 // Add the frame data
-                data.AddRange (Data);
+                if (Data != null)
+                    data.AddRange (Data);
 
                 // Add our padding
                 for (int i = 0; i < padLength; i++)
