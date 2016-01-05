@@ -90,6 +90,9 @@ namespace HttpTwo
                 } else if (f.Type == FrameType.Continuation) {
                     var h = (f as ContinuationFrame).Headers ?? new NameValueCollection ();
                     responseHeaders.Add (h);
+                } else if (f.Type == FrameType.PushPromise) {
+                    var h = (f as PushPromiseFrame)?.Headers ?? new NameValueCollection ();
+                    responseHeaders.Add (h);
                 } else if (f.Type == FrameType.GoAway) {
                     var fga = f as GoAwayFrame;
                     if (fga != null && fga.AdditionalDebugData != null && fga.AdditionalDebugData.Length > 0)
