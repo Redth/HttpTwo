@@ -9,21 +9,20 @@ namespace HttpTwo.Tests
     {
         NodeHttp2Runner node;
 
-        [SetUp]
+        [TestFixtureSetUp]
         public void Setup ()
         {
             node = new NodeHttp2Runner ();
-            node.LogHandler = (msg) => {
-                Console.WriteLine (msg);
-            };
+            node.LogHandler = System.Diagnostics.Debug.WriteLine;
+            
             node.StartServer ();
             // Wait for the server to initialize
             System.Threading.Thread.Sleep (2000);
         }
 
-        [TearDown]
+        [TestFixtureTearDown]
         public void Teardown ()
-        {
+        {            
             node.StopServer ();
         }
 
