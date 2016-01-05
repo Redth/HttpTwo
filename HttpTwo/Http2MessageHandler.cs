@@ -14,74 +14,46 @@ namespace HttpTwo
     {
         public Http2MessageHandler () : base ()
         {
+            connections = new Dictionary<string, Http2Client> ();
         }
 
-        Http2Connection connection;
+        Dictionary<string, Http2Client> connections;
 
-        #region implemented abstract members of HttpMessageHandler
-
-        protected override async Task<HttpResponseMessage> SendAsync (HttpRequestMessage request, System.Threading.CancellationToken cancellationToken)
+        protected override async Task<HttpResponseMessage> SendAsync (HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            if (connection == null) {
-                connection = new Http2Connection (request.RequestUri.Host, (uint)request.RequestUri.Port, request.RequestUri.Scheme == Uri.UriSchemeHttps);
-            } else {
-                // TODO: Check if they tried to use a new host/port
+            var key = request.RequestUri.Scheme + "-" + request.RequestUri.Host + ":" + request.RequestUri.Port;
+
+            if (!connections.ContainsKey (key)) 
+                connections.Add (key, new Http2Client (request.RequestUri.Host, (uint)request.RequestUri.Port, request.RequestUri.Scheme == Uri.UriSchemeHttps));                    
+
+            var client = connections [key];
+
+            byte[] data = null;
+
+            if (request.Content != null)
+                data = await request.Content.ReadAsByteArrayAsync ();
+
+            // Add the other headers (some might not make sense)
+            var headers = new NameValueCollection ();
+            foreach (var header in request.Headers.AsEnumerable ()) {
+                foreach (var value in header.Value)
+                    headers.Add (header.Key, value);
             }
 
-            await connection.Connect ();
+            var response = await client.Send (request.RequestUri, request.Method, headers, data);
 
-            var resetComplete = new ManualResetEventSlim (false);
+            var httpResponseMsg = new HttpResponseMessage (response.Status);
 
-            var stream = await connection.CreateStream ();
-            stream.OnFrameReceived += frame => {
-                if (frame.IsEndStream)
-                    resetComplete.Set ();
-            };
-
-            var headersFrame = new HeadersFrame (stream.StreamIdentifer);
-            headersFrame.Headers.Add (":method", request.Method.Method.ToUpperInvariant ());
-            headersFrame.Headers.Add (":path", request.RequestUri.PathAndQuery);
-            headersFrame.Headers.Add (":scheme", request.RequestUri.Scheme);
-            headersFrame.Headers.Add (":authority", request.RequestUri.Authority);
-            headersFrame.EndHeaders = true;
-            headersFrame.EndStream = true;
-
-            await connection.SendFrame (headersFrame);
-
-            resetComplete.Wait (connection.ConnectionTimeout);
-
-            var responseData = new List<byte> ();
-            var responseHeaders = new NameValueCollection ();
-
-            foreach (var f in stream.Frames) {
-                if (f.Type == FrameType.Headers) {                    
-                    responseHeaders = (f as HeadersFrame)?.Headers ?? new NameValueCollection ();
-                } else if (f.Type == FrameType.Data) {
-                    responseData.AddRange ((f as DataFrame).Data);
-                    //responseData += Encoding.ASCII.GetString ((f as DataFrame).Data);
-                } else if (f.Type == FrameType.Continuation) {
-                    // TODO:
-                }
+            foreach (var h in response.Headers.AllKeys) {
+                if (!h.StartsWith (":", StringComparison.InvariantCultureIgnoreCase))
+                    httpResponseMsg.Headers.TryAddWithoutValidation (h, response.Headers [h]);
             }
 
-            var httpStatusStr = responseHeaders.GetValues (":status")?.FirstOrDefault ();
-            var httpStatus = HttpStatusCode.InternalServerError;
-
-            Enum.TryParse<HttpStatusCode> (httpStatusStr, out httpStatus);
-
-            var httpResponseMsg = new HttpResponseMessage (httpStatus);
-
-            foreach (var h in responseHeaders.AllKeys) {
-                if (!h.StartsWith (":"))
-                    httpResponseMsg.Headers.TryAddWithoutValidation (h, responseHeaders [h]);
-            }
-
-            httpResponseMsg.Content = new ByteArrayContent (responseData.ToArray ());
+            if (response.Body != null)
+                httpResponseMsg.Content = new ByteArrayContent (response.Body);
 
             return httpResponseMsg;
         }
-
-        #endregion
     }
 }
 
