@@ -23,29 +23,22 @@ namespace HttpTwo
 
         public Http2Connection (string host, uint port, bool useTls = false)
         {
-            var ipHost = Dns.GetHostEntry (host);
-            var endPoint = new IPEndPoint (ipHost.AddressList.FirstOrDefault (), (int)port);
-
-            Init (endPoint, useTls);
+            Init(host, port, useTls);
         }
-
-        public Http2Connection (IPEndPoint endPoint, bool useTls = false)
+        
+        void Init (string host, uint port, bool useTls = false)
         {
-            Init (endPoint, useTls);
-        }
-
-        void Init (IPEndPoint endPoint, bool useTls = false)
-        {
+            Host = host;
+            Port = port;
+            UseTls = useTls;
             ConnectionTimeout = TimeSpan.FromSeconds (60);
             Streams = new Dictionary<uint, HttpStream> ();
-
-            UseTls = useTls;
-            Endpoint = endPoint;
         }
 
         public X509CertificateCollection Certificates { get; set; }
         public bool UseTls { get; private set; }
-        public IPEndPoint Endpoint { get; private set; }
+        public string Host { get; private set; }
+        public uint Port { get; private set; }
         public TimeSpan ConnectionTimeout { get; set; }
 
         public Dictionary<uint, HttpStream> Streams { get; set; }
@@ -62,16 +55,18 @@ namespace HttpTwo
                 return;
 
             tcp = new TcpClient ();
-            await tcp.ConnectAsync (Endpoint.Address, Endpoint.Port);
+
+            // Disable Nagle for HTTP/2
+            tcp.NoDelay = true;
+
+            await tcp.ConnectAsync (Host, (int)Port);
 
             if (UseTls) {
                 sslStream = new SslStream (tcp.GetStream (), false, 
                     (sender, certificate, chain, sslPolicyErrors) => true);
-
-                var hostEntry = await Dns.GetHostEntryAsync (Endpoint.Address);
-
+                
                 await sslStream.AuthenticateAsClientAsync (
-                    hostEntry.HostName, 
+                    Host, 
                     Certificates ?? new X509CertificateCollection (), 
                     System.Security.Authentication.SslProtocols.Tls12, 
                     false);
@@ -85,7 +80,7 @@ namespace HttpTwo
             var prefaceData = System.Text.Encoding.ASCII.GetBytes (ConnectionPreface);
             await clientStream.WriteAsync (prefaceData, 0, prefaceData.Length);
             await clientStream.FlushAsync ();
-
+            
             // Start reading the stream on another thread
             var readTask = Task.Factory.StartNew (() => {
                 try { read (); }
@@ -100,6 +95,9 @@ namespace HttpTwo
                 Console.WriteLine ("Error: " + t.Exception);
                 Disconnect ();
             }, TaskContinuationOptions.OnlyOnFaulted);
+
+            // Send an un-ACK'd settings frame
+            await SendFrame(new SettingsFrame ());
 
             // We need to wait for settings server preface to come back now
             resetEventConnectionSettingsFrame = new ManualResetEventSlim ();
@@ -190,9 +188,11 @@ namespace HttpTwo
             await lockWrite.WaitAsync ();
 
             try {
-                await clientStream.WriteAsync (data, 0, data.Length);
+                await clientStream.WriteAsync(data, 0, data.Length);
+                await clientStream.FlushAsync();
+            } catch {
             } finally {
-                lockWrite.Release ();
+                lockWrite.Release();
             }
         }
 
@@ -205,7 +205,11 @@ namespace HttpTwo
 
             while (true) {
 
-                rx = await clientStream.ReadAsync (b, 0, b.Length);
+                try {
+                    rx = await clientStream.ReadAsync(b, 0, b.Length);
+                } catch {
+                    rx = -1;
+                }
 
                 if (rx > 0) {
 
@@ -220,10 +224,7 @@ namespace HttpTwo
                         // 9 octets is the frame header length
                         if (buffer.Count < 9)
                             break;
-
-                        //var str = System.Text.Encoding.ASCII.GetString (buffer.ToArray ());
-                        //Console.WriteLine ("RX: " + str);
-
+                        
                         // Find out the frame length
                         // which is a 24 bit uint, so we need to convert this as c# uint is 32 bit
                         var flen = new byte[4];
@@ -315,9 +316,15 @@ namespace HttpTwo
                         }
 
                         try {
-                            var stream = await GetStream (frameStreamId);
-                            stream.ProcessFrame (frame);
-
+                            if (frameStreamId == 0) {
+                                foreach (var s in Streams) {
+                                    if (s.Value.State != StreamState.Closed)
+                                        s.Value.ProcessFrame(frame);
+                                }
+                            } else {
+                                var stream = await GetStream(frameStreamId);
+                                stream.ProcessFrame(frame);
+                            }
                         } catch (Exception ex) {
                             Console.WriteLine ("Error Processing Frame: " + ex);
                             throw ex;
@@ -326,12 +333,14 @@ namespace HttpTwo
 
                 } else {
                     // TODO: Connection error
-                    throw new Exception ("Connection Error");
+                    //throw new Exception ("Connection Error");
                     break;
                 }
 
 
             }
+
+            Disconnect();
         }
     }
 

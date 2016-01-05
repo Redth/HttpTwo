@@ -16,21 +16,13 @@ namespace HttpTwo
         Http2Connection connection;
 
         public Http2Client (string host, uint port, bool useTls = false)
-        {
-            var ipHost = Dns.GetHostEntry (host);
-            var endPoint = new IPEndPoint (ipHost.AddressList.FirstOrDefault (), (int)port);
-
-            Init (endPoint, useTls);
+        {            
+            Init (host, port, useTls);
         }
 
-        public Http2Client (IPEndPoint endPoint, bool useTls = false)
+        void Init (string host, uint port, bool useTls = false)
         {
-            Init (endPoint, useTls);
-        }
-
-        void Init (IPEndPoint endPoint, bool useTls = false)
-        {
-            connection = new Http2Connection (endPoint, useTls);
+            connection = new Http2Connection (host, port, useTls);
         }
 
         public X509CertificateCollection Certificates {
@@ -45,9 +37,18 @@ namespace HttpTwo
 
         public async Task<Http2Response> Send (Uri uri, HttpMethod method, NameValueCollection headers = null, byte[] data = null)
         {
+            var semaphoreClose = new SemaphoreSlim(0);
+
             await connection.Connect ();
 
             var stream = await connection.CreateStream ();
+            stream.OnFrameReceived += (frame) =>
+            {
+                if (stream.State == StreamState.Closed)
+                    semaphoreClose.Release();
+            };
+
+            //await connection.SendFrame(new SettingsFrame());
 
             var headersFrame = new HeadersFrame (stream.StreamIdentifer);
             headersFrame.Headers.Add (":method", method.Method.ToUpperInvariant ());
@@ -62,9 +63,10 @@ namespace HttpTwo
 
                 await connection.SendFrame (headersFrame);
 
-                var dataFrame = new DataFrame ();
+                var dataFrame = new DataFrame (stream.StreamIdentifer);
                 dataFrame.Data = data;
                 dataFrame.EndStream = true;
+                
 
                 await connection.SendFrame (dataFrame);
 
@@ -74,7 +76,7 @@ namespace HttpTwo
                 await connection.SendFrame (headersFrame);
             }
 
-            if (!await stream.WaitForEndStreamAsync (connection.ConnectionTimeout))
+            if (!await semaphoreClose.WaitAsync (connection.ConnectionTimeout))
                 throw new TimeoutException ();
             
             var responseData = new List<byte> ();
@@ -95,7 +97,7 @@ namespace HttpTwo
                 }
             }
 
-            var strStatus = "200";
+            var strStatus = "500";
             if (responseHeaders [":status"] != null)
                 strStatus = responseHeaders [":status"];
             
