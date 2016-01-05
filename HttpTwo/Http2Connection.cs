@@ -41,7 +41,7 @@ namespace HttpTwo
         public uint Port { get; private set; }
         public TimeSpan ConnectionTimeout { get; set; }
 
-        public Dictionary<uint, HttpStream> Streams { get; set; }
+        public Dictionary<uint, HttpStream> Streams { get; private set; }
 
         TcpClient tcp;
         Stream clientStream;
@@ -98,14 +98,6 @@ namespace HttpTwo
 
             // Send an un-ACK'd settings frame
             await SendFrame(new SettingsFrame ());
-
-            // We need to wait for settings server preface to come back now
-            resetEventConnectionSettingsFrame = new ManualResetEventSlim ();
-            resetEventConnectionSettingsFrame.Reset ();
-            if (!resetEventConnectionSettingsFrame.Wait (ConnectionTimeout)) {
-                Disconnect ();
-                throw new Exception ("Connection timed out");
-            }
         }
 
         void Disconnect ()
@@ -179,6 +171,16 @@ namespace HttpTwo
             return stream;
         }
 
+        public async Task CleanupStream (uint streamIdentifier)
+        {
+            await lockStreams.WaitAsync ();
+
+            if (Streams.ContainsKey (streamIdentifier))
+                Streams.Remove (streamIdentifier);
+
+            lockStreams.Release ();
+        }
+
         SemaphoreSlim lockWrite = new SemaphoreSlim (1);
 
         public async Task SendFrame (Frame frame)
@@ -190,6 +192,8 @@ namespace HttpTwo
             try {
                 await clientStream.WriteAsync(data, 0, data.Length);
                 await clientStream.FlushAsync();
+                var stream = await GetStream (frame.StreamIdentifier);
+                stream.ProcessSentFrame (frame);
             } catch {
             } finally {
                 lockWrite.Release();
@@ -212,8 +216,6 @@ namespace HttpTwo
                 }
 
                 if (rx > 0) {
-
-                    Console.WriteLine ("RX: {0} bytes", rx);
 
                     for (int i = 0; i < rx; i++)
                         buffer.Add (b [i]);
@@ -312,7 +314,11 @@ namespace HttpTwo
                             // ack the settings from the server
                             settingsFrame.Ack = true;
                             await SendFrame (settingsFrame);
-                            resetEventConnectionSettingsFrame.Set ();
+                        }
+
+                        // TODO: Process window update
+                        if (ft == FrameType.WindowUpdate) {
+
                         }
 
                         try {
