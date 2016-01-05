@@ -84,7 +84,7 @@ namespace HttpTwo
                     HeaderTableSize = value;
                     break;
                 case 0x2:
-                    EnablePush = value;
+                    EnablePush = value == 1;
                     break;
                 case 0x3:
                     MaxConcurrentStreams = value;
