@@ -92,12 +92,11 @@ namespace HttpTwo
 
             readTask.ContinueWith (t => {
                 // TODO: Handle the error
-                Console.WriteLine ("Error: " + t.Exception);
                 Disconnect ();
             }, TaskContinuationOptions.OnlyOnFaulted);
 
             // Send an un-ACK'd settings frame
-            await SendFrame(new SettingsFrame ());
+            await SendFrame(new SettingsFrame { EnablePush = false });
         }
 
         void Disconnect ()
@@ -344,8 +343,7 @@ namespace HttpTwo
             }
 
             // Cleanup
-            //Disconnect();
-            // The task continuation from read should handle disconnect / cleanup
+            Disconnect();
         }
     }
 

@@ -22,7 +22,7 @@ namespace HttpTwo
         }
 
         public uint? HeaderTableSize { get; set; } // 4096 is default (0x1)
-        public uint? EnablePush { get;set; } // 1 or 0 (0x2)
+        public bool? EnablePush { get;set; } // 1 or 0 (0x2)
         public uint? MaxConcurrentStreams { get;set; } // (0x3)
         public uint? InitialWindowSize { get;set; } // (0x4) 
         public uint? MaxFrameSize { get;set; } // (0x5)
@@ -39,7 +39,7 @@ namespace HttpTwo
 
                 if (EnablePush.HasValue) {
                     data.AddRange (BitConverter.GetBytes ((ushort)0x2));
-                    data.AddRange (BitConverter.GetBytes (EnablePush.Value));
+                    data.Add (EnablePush.Value ? (byte)1 : (byte)0);
                 }
 
                 if (MaxConcurrentStreams.HasValue) {
