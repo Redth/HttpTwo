@@ -18,7 +18,7 @@ namespace HttpTwo.Tests
             var scriptPath = Path.Combine (AppDomain.CurrentDomain.BaseDirectory, "..", "..", "node-http2", "example", "server.js");
 
             process = new Process ();
-            process.StartInfo = new ProcessStartInfo ("/usr/local/bin/node", scriptPath);
+            process.StartInfo = new ProcessStartInfo ("node", "\"" + scriptPath + "\"");
             process.StartInfo.UseShellExecute = false;
             process.StartInfo.CreateNoWindow = true;
             process.StartInfo.EnvironmentVariables.Add ("HTTP2_PLAIN", "true");
@@ -39,6 +39,8 @@ namespace HttpTwo.Tests
                 if (LogHandler != null)
                     LogHandler (e.Data);
             };
+
+            Console.WriteLine ("Running: {0} {1}", process.StartInfo.FileName, process.StartInfo.Arguments);
 
             process.Start ();
             process.BeginOutputReadLine ();
