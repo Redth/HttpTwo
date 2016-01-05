@@ -4,6 +4,15 @@ namespace HttpTwo
 {
     public class RstStreamFrame : Frame
     {
+        public RstStreamFrame () : base ()
+        {
+        }
+
+        public RstStreamFrame (uint streamIdentifier) : base ()
+        {
+            StreamIdentifier = streamIdentifier;
+        }
+
         public ErrorCode ErrorCode { get;set; }
 
         public override FrameType Type {
@@ -16,7 +25,8 @@ namespace HttpTwo
        
         public override IEnumerable<byte> Payload {
             get { 
-                return new [] { (byte)ErrorCode };
+                var errorCode = (byte)((uint)ErrorCode);
+                return new [] { errorCode };
             }
         }
 
