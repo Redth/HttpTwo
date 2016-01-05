@@ -20,3 +20,9 @@ It's currently very untested and only partially implemented.
  - HttpClient message handler needs to be completed
  - Much more test coverage needed
 
+
+### How to Test
+
+There's only one simple test right now for a single page get.
+
+Tests will run against a `node-http2` server running locally.  The source is included in `HttpTwo.Tests/node-http2`.  Make sure you run `npm install` in that folder after check out before you start the NUnit tests (which will automatically launch the node server when you run the tests).
