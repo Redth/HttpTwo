@@ -5,6 +5,15 @@ namespace HttpTwo
 {
     public class DataFrame : Frame
     {
+        public DataFrame() : base ()
+        {
+        }
+        
+        public DataFrame (uint streamIdentifier) : base ()
+        {
+            StreamIdentifier = streamIdentifier;
+        }
+
         uint padLength = 0;
         public uint PadLength { 
             get { 
