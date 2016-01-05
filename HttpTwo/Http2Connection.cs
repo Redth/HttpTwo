@@ -332,15 +332,14 @@ namespace HttpTwo
                     }
 
                 } else {
-                    // TODO: Connection error
-                    //throw new Exception ("Connection Error");
+                    // Stream was closed, break out of reading loop
                     break;
                 }
-
-
             }
 
-            Disconnect();
+            // Cleanup
+            //Disconnect();
+            // The task continuation from read should handle disconnect / cleanup
         }
     }
 
