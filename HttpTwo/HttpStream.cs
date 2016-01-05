@@ -11,7 +11,7 @@ namespace HttpTwo
 
         static uint streamId = 1;
 
-        static uint GetNextId ()
+        internal static uint GetNextId ()
         {
             var nextId = streamId;
 
@@ -24,9 +24,7 @@ namespace HttpTwo
 
             return nextId;
         }
-
-        TaskCompletionSource<object> tcsEndStream;
-
+        
         public HttpStream ()            
         {            
             Init (GetNextId ());
@@ -42,8 +40,6 @@ namespace HttpTwo
             Frames = new List<Frame> ();
             StreamIdentifer = streamIdentifier;
             State = StreamState.Idle;
-
-            tcsEndStream = new TaskCompletionSource<object> ();
         }
 
         public uint StreamIdentifer { get; private set; }
@@ -58,7 +54,7 @@ namespace HttpTwo
             // Add frame to the list of history
             Frames.Add (frame);
 
-            if (frame.Type == FrameType.RstStream || frame.IsEndStream) {
+            if (frame.Type == FrameType.RstStream || frame.IsEndStream || frame.Type == FrameType.GoAway) {
                 State = StreamState.Closed;
             } else {
                 
@@ -73,23 +69,11 @@ namespace HttpTwo
             }
 
             // Raise the event
-            OnFrameReceived?.Invoke (frame);
-
-            if (State == StreamState.Closed && !tcsEndStream.Task.IsCompleted)
-                tcsEndStream.SetResult (null);
+            var eh = OnFrameReceived;
+            if (eh != null)
+                eh(frame);            
         }
-
-        public async Task<bool> WaitForEndStreamAsync (TimeSpan timeout)
-        {                        
-            if (await Task.WhenAny (tcsEndStream.Task, Task.Delay (timeout)) == tcsEndStream.Task) {
-                // task completed within timeout
-                return true;
-            } 
-
-            return false;
-        }
-
-
+        
         public delegate void FrameReceivedDelegate (Frame frame);
         public event FrameReceivedDelegate OnFrameReceived;
     }
