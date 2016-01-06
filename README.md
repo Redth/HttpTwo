@@ -70,8 +70,24 @@ There's only one simple test right now for a single page get.
 
 Tests will run against a `node-http2` server running locally.  The source is included in `HttpTwo.Tests/node-http2`.  Make sure you run `npm install` in that folder after check out before you start the NUnit tests (which will automatically launch the node server when you run the tests).
 
+### License
 
-### HPACK Code
+Copyright 2015 Jonathan Dick
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+
+### HPack Code
 This library uses HPACK code which is licensed under Apache 2.0 and was borrowed from Ringo Leese's repository at: https://github.com/ringostarr80/hpack 
 
 Thanks @ringostarr80 !
