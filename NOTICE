@@ -1,0 +1,11 @@
+HttpTwo
+Copyright 2015 Jonathan Dick
+
+This library uses HPACK code from Ringo Leese at
+https://github.com/ringostarr80/hpack
+
+	HPACK - Header Compression for HTTP/2
+	Copyright 2015 Ringo Leese
+
+	This product was converted from the Java code at
+	https://github.com/twitter/hpack/ to the current C# code.
