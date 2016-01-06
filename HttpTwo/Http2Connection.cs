@@ -33,7 +33,10 @@ namespace HttpTwo
             UseTls = useTls;
             ConnectionTimeout = TimeSpan.FromSeconds (60);
             Streams = new Dictionary<uint, HttpStream> ();
+            Settings = new Http2Settings ();
         }
+
+        public Http2Settings Settings { get; private set; }
 
         public X509CertificateCollection Certificates { get; set; }
         public bool UseTls { get; private set; }
@@ -46,8 +49,6 @@ namespace HttpTwo
         TcpClient tcp;
         Stream clientStream;
         SslStream sslStream;
-
-        ManualResetEventSlim resetEventConnectionSettingsFrame;
 
         public async Task Connect ()
         {
@@ -303,21 +304,44 @@ namespace HttpTwo
                             throw ex;
                         }
 
-                        // If we are waiting on the connection preface from server
-                        // and it's the right frame type, set our resetevent
-                        if (ft == FrameType.Settings 
-                            && resetEventConnectionSettingsFrame != null 
-                            && !resetEventConnectionSettingsFrame.IsSet) {
+                        // If it's a settings frame, we should note the values and
+                        // return the frame with the Ack flag set
+                        if (ft == FrameType.Settings) {
 
                             var settingsFrame = frame as SettingsFrame;
-                            // ack the settings from the server
+
+                            if (settingsFrame.EnablePush.HasValue)
+                                Settings.EnablePush = settingsFrame.EnablePush.Value;
+                            if (settingsFrame.HeaderTableSize.HasValue)
+                                Settings.HeaderTableSize = settingsFrame.HeaderTableSize.Value;
+                            if (settingsFrame.InitialWindowSize.HasValue)
+                                Settings.InitialWindowSize = settingsFrame.InitialWindowSize.Value;
+                            if (settingsFrame.MaxConcurrentStreams.HasValue)
+                                Settings.MaxConcurrentStreams = settingsFrame.MaxConcurrentStreams.Value;
+                            if (settingsFrame.MaxFrameSize.HasValue)
+                                Settings.MaxFrameSize = settingsFrame.MaxFrameSize.Value;
+                            if (settingsFrame.MaxHeaderListSize.HasValue)
+                                Settings.MaxHeaderListSize = settingsFrame.MaxHeaderListSize.Value;
+                            
                             settingsFrame.Ack = true;
                             await SendFrame (settingsFrame);
                         }
 
                         // TODO: Process window update
                         if (ft == FrameType.WindowUpdate) {
+                            var windowUpdateFrame = frame as WindowUpdateFrame;
 
+                            //windowUpdateFrame.WindowSizeIncrement
+                        }
+
+                        if (ft == FrameType.Ping) {
+                            var pingFrame = frame as PingFrame;
+                            // See if we need to respond to the ping request (if it's not-ack'd)
+                            if (!pingFrame.Ack) {
+                                // Ack and respond
+                                pingFrame.Ack = true;
+                                await SendFrame (pingFrame);
+                            }
                         }
 
                         try {

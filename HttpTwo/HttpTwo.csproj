@@ -49,6 +49,7 @@
     <Compile Include="Frames\ContinuationFrame.cs" />
     <Compile Include="Frames\PriorityFrame.cs" />
     <Compile Include="Frames\PushPromiseFrame.cs" />
+    <Compile Include="Http2Settings.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
