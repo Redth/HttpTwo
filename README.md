@@ -69,3 +69,9 @@ var data = await http.GetStringAsync ("http://somesite.com:80/index.html");
 There's only one simple test right now for a single page get.
 
 Tests will run against a `node-http2` server running locally.  The source is included in `HttpTwo.Tests/node-http2`.  Make sure you run `npm install` in that folder after check out before you start the NUnit tests (which will automatically launch the node server when you run the tests).
+
+
+### HPACK Code
+This library uses HPACK code which is licensed under Apache 2.0 and was borrowed from Ringo Leese's repository at: https://github.com/ringostarr80/hpack 
+
+Thanks @ringostarr80 !
