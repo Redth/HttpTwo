@@ -6,42 +6,27 @@ using System.Threading;
 namespace HttpTwo
 {
     public class HttpStream
-    {
-        const uint STREAM_ID_MAX_VALUE = 1073741823;
-
-        static uint streamId = 1;
-
-        internal static uint GetNextId ()
-        {
-            var nextId = streamId;
-
-            // Increment for next use, by 2, must always be odd if initiated from client
-            streamId += 2;
-
-            // Wrap around if we hit max
-            if (streamId > STREAM_ID_MAX_VALUE)
-                streamId = 1;
-
-            return nextId;
-        }
-        
-        public HttpStream ()            
+    {        
+        public HttpStream (Http2Connection connection)
         {            
-            Init (GetNextId ());
+            Init (connection, connection.GetNextId ());
         }
 
-        public HttpStream (uint streamIdentifier)
+        public HttpStream (Http2Connection connection, uint streamIdentifier)
         {
-            Init (streamIdentifier);
+            Init (connection, streamIdentifier);
         }
 
-        void Init (uint streamIdentifier)
+        void Init (Http2Connection connection, uint streamIdentifier)
         {
+            Connection = connection;
             Frames = new List<Frame> ();
             SentFrames = new List<Frame> ();
             StreamIdentifer = streamIdentifier;
             State = StreamState.Idle;
         }
+
+        public Http2Connection Connection { get; private set; }
 
         public uint StreamIdentifer { get; private set; }
 

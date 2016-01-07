@@ -21,6 +21,27 @@ namespace HttpTwo
                 (sender, certificate, chain, sslPolicyErrors) => true;
         }
 
+        const uint STREAM_ID_MAX_VALUE = 1073741823;
+
+        public uint NextStreamId { get; private set; }
+
+        internal uint GetNextId ()
+        {
+            var nextId = NextStreamId;
+
+            // Increment for next use, by 2, must always be odd if initiated from client
+            NextStreamId += 2;
+
+            // Wrap around if we hit max
+            if (NextStreamId > STREAM_ID_MAX_VALUE) {
+                // TODO: Disconnect so we can reset the stream id
+            }
+
+            return nextId;
+        }
+
+
+
         public Http2Connection (string host, uint port, bool useTls = false)
         {
             Init(host, port, useTls);
@@ -54,6 +75,9 @@ namespace HttpTwo
         {
             if (IsConnected ())
                 return;
+
+            // Reset the stream Identifier on a new connection
+            NextStreamId = 1;
 
             tcp = new TcpClient ();
 
@@ -147,7 +171,7 @@ namespace HttpTwo
             HttpStream stream = null;
 
             if (!Streams.ContainsKey (streamIdentifier)) {
-                stream = new HttpStream (streamIdentifier);
+                stream = new HttpStream (this, streamIdentifier);
                 Streams.Add (streamIdentifier, stream);
             } else {
                 stream = Streams [streamIdentifier];
@@ -162,7 +186,7 @@ namespace HttpTwo
         {
             await lockStreams.WaitAsync ();
 
-            var stream = new HttpStream ();
+            var stream = new HttpStream (this);
 
             Streams.Add (stream.StreamIdentifer, stream);
 
