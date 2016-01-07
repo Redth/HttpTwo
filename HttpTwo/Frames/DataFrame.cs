@@ -48,8 +48,9 @@ namespace HttpTwo
             get {
                 var data = new List<byte> ();
 
-                // Add the padding length 
-                data.Add ((byte)padLength);
+                // Add the padding length - optional
+                if (Padded && padLength > 0)                    
+                    data.Add ((byte)padLength);
 
                 // Add the frame data
                 if (Data != null)
