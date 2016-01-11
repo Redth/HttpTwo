@@ -37,6 +37,13 @@ namespace HttpTwo
             else
                 ErrorCode = ErrorCode.NoError;
         }
+
+        public override string ToString ()
+        {
+            return string.Format ("[Frame: RST_STREAM, Id={0}, ErrorCode={1}]", 
+                StreamIdentifier, 
+                ErrorCode);
+        }
     }
 
     public enum ErrorCode

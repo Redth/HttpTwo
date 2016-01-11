@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Collections.Specialized;
+using System.Linq;
 
 namespace HttpTwo
 {
@@ -135,6 +136,20 @@ namespace HttpTwo
             index += headerData.Length;
 
             // Don't care about padding
+        }
+
+        public override string ToString ()
+        {
+            var h = String.Join (", ", Headers.AllKeys.Select (n => n + "=" + Headers[n]));
+
+            return string.Format ("[Frame: PUSH_PROMISE, Id={0}, EndStream={1}, EndHeaders={2}, StreamDependency={3}, Padded={4}, PadLength={5}, Headers={6}]", 
+                StreamIdentifier, 
+                IsEndStream,
+                EndHeaders,
+                StreamDependency,
+                Padded,
+                PadLength,
+                h);
         }
     }
 }

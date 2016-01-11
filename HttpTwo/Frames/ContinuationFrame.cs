@@ -81,5 +81,16 @@ namespace HttpTwo
                 hpackDecoder.EndHeaderBlock(); // this must be called to finalize the decoding process.
             }
         }
+
+        public override string ToString ()
+        {
+            var h = String.Join (", ", Headers.AllKeys.Select (n => n + "=" + Headers[n]));
+            
+            return string.Format ("[Frame: CONTINUATION, Id={0}, EndStream={1}, EndHeaders={2}, Headers=>{3}]", 
+                StreamIdentifier, 
+                IsEndStream, 
+                EndHeaders, 
+                h);
+        }
     }
 }

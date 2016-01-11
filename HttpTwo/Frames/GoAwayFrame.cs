@@ -56,6 +56,19 @@ namespace HttpTwo
                 Array.Copy(payloadData, 8, AdditionalDebugData, 0, payloadData.Length - 8);
             }
         }
+
+        public override string ToString ()
+        {
+            var debug = string.Empty;
+            if (AdditionalDebugData != null && AdditionalDebugData.Length > 0)
+                debug = System.Text.Encoding.ASCII.GetString (AdditionalDebugData);
+            
+            return string.Format ("[Frame: GOAWAY, Id={0}, ErrorCode={1}, LastStreamId={2}, AdditionalDebugData={3}]", 
+                StreamIdentifier, 
+                ErrorCode, 
+                LastStreamId, 
+                debug);
+        }
     }
     
 }

@@ -80,6 +80,16 @@ namespace HttpTwo
             Data = new byte[payloadData.Length - (index + padLength)];
             Array.Copy (payloadData, index, Data, 0, Data.Length);
         }
+
+        public override string ToString ()
+        {
+            return string.Format ("[Frame: DATA, Id={0}, EndStream={1}, Padded={2}, PadLength={3}, PayloadLength={4}]", 
+                StreamIdentifier,
+                IsEndStream,
+                Padded,
+                PadLength,
+                PayloadLength);
+        }
     }
     
 }

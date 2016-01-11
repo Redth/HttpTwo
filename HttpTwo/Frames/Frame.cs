@@ -22,6 +22,34 @@ namespace HttpTwo
 
     public abstract class Frame
     {
+        public static Frame Create (FrameType frameType)
+        {
+            switch (frameType) {
+            case FrameType.Data:
+                return new DataFrame ();
+            case FrameType.Headers:
+                return new HeadersFrame ();
+            case FrameType.Priority:
+                return new PriorityFrame ();
+            case FrameType.RstStream:
+                return new RstStreamFrame ();
+            case FrameType.Settings:
+                return new SettingsFrame ();
+            case FrameType.PushPromise:
+                return new PushPromiseFrame ();
+            case FrameType.Ping:
+                return new PingFrame ();
+            case FrameType.GoAway:
+                return new GoAwayFrame ();
+            case FrameType.WindowUpdate:
+                return new WindowUpdateFrame ();
+            case FrameType.Continuation:
+                return new ContinuationFrame ();
+            }
+
+            return null;
+        }
+
         protected Frame ()
         {
             Flags = (byte)0;
@@ -40,6 +68,16 @@ namespace HttpTwo
         public virtual uint StreamIdentifier { get; set; }
 
         public virtual IEnumerable<byte> Payload { get; }
+
+        uint? payloadLength;
+        public uint PayloadLength {
+            get {
+                if (!payloadLength.HasValue)
+                    payloadLength = (uint)Payload.Count ();
+
+                return payloadLength.Value;
+            }
+        }
 
         public bool IsEndStream {
             get {
@@ -128,6 +166,11 @@ namespace HttpTwo
         }
 
         public abstract void ParsePayload (byte[] payloadData, FrameHeader frameHeader);
+
+        public override string ToString ()
+        {
+            return string.Format ("[Frame: {0}, Id={1}, Flags={2}, PayloadLength={3}, IsEndStream={4}]", Type.ToString ().ToUpperInvariant (), StreamIdentifier, Flags, PayloadLength, IsEndStream);
+        }
     }
 
     public enum FrameType

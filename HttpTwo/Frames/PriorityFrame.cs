@@ -63,5 +63,13 @@ namespace HttpTwo
             // Get the weight
             weight = (ushort)payloadData [4];
         }
+
+        public override string ToString ()
+        {
+            return string.Format ("[Frame: PRIORITY, Id={0}, StreamDependency={1}, Weight={2}]", 
+                StreamIdentifier,
+                StreamDependency,
+                Weight);
+        }
     }
 }

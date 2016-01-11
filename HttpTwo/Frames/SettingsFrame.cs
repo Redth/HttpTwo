@@ -72,11 +72,6 @@ namespace HttpTwo
 
             for (int i = 0; i < payloadData.Length; i+=6) {
 
-//                var idData = new byte[2];
-//                Array.Copy (payloadData, i, idData, 0, 2);
-
-                //var id = BitConverter.ToUInt16 (idData, 0);
-
                 var value = BitConverter.ToUInt32 (payloadData, i + 2);
 
                 switch (value) {
@@ -100,6 +95,19 @@ namespace HttpTwo
                     break;
                 }
             }
+        }
+
+        public override string ToString ()
+        {
+            return string.Format ("[Frame: SETTINGS, Id={0}, Ack={1}, HeaderTableSize={2}, EnablePush={3}, MaxConcurrentStreams={4}, InitialWindowSize={5}, MaxFrameSize={6}, MaxHeaderListSize={7}]", 
+                StreamIdentifier, 
+                Ack, 
+                HeaderTableSize,
+                EnablePush,
+                MaxConcurrentStreams,
+                InitialWindowSize,
+                MaxFrameSize, 
+                MaxHeaderListSize);
         }
     }
 }

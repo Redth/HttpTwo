@@ -18,7 +18,7 @@ namespace HttpTwo
                 // 1 Bit reserved as unset (0) so let's take the first bit of the next 32 bits and unset it
                 data.AddRange (Util.ConvertToUInt31 (WindowSizeIncrement).EnsureBigEndian ());
 
-                return data;               
+                return data;
             }
         }
 
@@ -28,6 +28,13 @@ namespace HttpTwo
             var windowSizeIncrData = new byte[4]; 
             Array.Copy (payloadData, 0, windowSizeIncrData, 0, 4);
             WindowSizeIncrement = Util.ConvertFromUInt31 (windowSizeIncrData.EnsureBigEndian ());
+        }
+
+        public override string ToString ()
+        {
+            return string.Format ("[Frame: WINDOW_UPDATE, Id={0}, WindowSizeIncrement={1}]", 
+                StreamIdentifier, 
+                WindowSizeIncrement);
         }
     }
 }
