@@ -46,7 +46,7 @@ There's a `Http2Client` class that can be used to send requests and receive resp
 var uri = new Uri ("http://somesite.com:80/index.html");
 
 // Create a Http2Client
-var http2 = new Http2Client (uri.Host, (uint)uri.Port, useTls: uri.Scheme == Uri.UriSchemeHttps);
+var http2 = new Http2Client (uri);
 
 // Specify any custom headers
 var headers = new NameValueCollection ();
