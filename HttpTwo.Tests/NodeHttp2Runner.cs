@@ -14,7 +14,8 @@ namespace HttpTwo.Tests
         {
             if (process != null && !process.HasExited)
                 return;
-            
+
+            // HTTP2_PLAIN=true HTTP2_LOG=trace HTTP2_LOG_DATA=1 node ./example/server.js
             var scriptPath = Path.Combine (AppDomain.CurrentDomain.BaseDirectory, "..", "..", "node-http2", "example", "server.js");
 
             process = new Process ();
@@ -40,7 +41,7 @@ namespace HttpTwo.Tests
                     LogHandler (e.Data);
             };
 
-            Console.WriteLine ("Running: {0} {1}", process.StartInfo.FileName, process.StartInfo.Arguments);
+            Log.Info ("Running: {0} {1}", process.StartInfo.FileName, process.StartInfo.Arguments);
 
             process.Start ();
             process.BeginOutputReadLine ();
