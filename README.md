@@ -1,5 +1,7 @@
 # HttpTwo
 
+[![Join the chat at https://gitter.im/Redth/HttpTwo](https://badges.gitter.im/Redth/HttpTwo.svg)](https://gitter.im/Redth/HttpTwo?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 A fully managed C# HTTP/2 client library implementation
 
 The focus of this library is to bring enough HTTP/2 functionality to .NET for implementing the APNS (Apple Push Notification Service) provider API over HTTP/2 within [PushSharp](https://github.com/redth/pushsharp)
