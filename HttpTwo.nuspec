@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2011/10/nuspec.xsd">
+    <metadata>
+        <id>HttpTwo</id>
+        <version>$version$</version>
+        <title>HttpTwo</title>
+        <authors>Redth</authors>
+        <owners>Redth</owners>
+        <licenseUrl>http://www.apache.org/licenses/LICENSE-2.0.txt</licenseUrl>
+        <projectUrl>https://github.com/Redth/HttpTwo</projectUrl>
+        <iconUrl>https://raw.githubusercontent.com/Redth/HttpTwo/master/HttpTwo-Icon.png</iconUrl>
+        <requireLicenseAcceptance>false</requireLicenseAcceptance>
+        <description>HTTP/2 C# Client Side Implementation</description>
+        <summary>HTTP/2 C# Client Side Implementation</summary>
+        <releaseNotes>
+        </releaseNotes>
+        <copyright>2012-2016 Redth</copyright>
+        <language>en-US</language>
+        <tags>HTTP, HTTP2, HTTP/2, HTTPTWO, Http Two, HTTP 2, HTTP.2, HTTP_2, HTTP-2</tags>
+        <dependencies>
+        </dependencies>
+    </metadata>
+    <files>
+        <file src="HttpTwo\bin\Release\HttpTwo.dll" target="lib\net45\HttpTwo.dll" />
+        <file src="HttpTwo\bin\Release\HttpTwo.HPack.dll" target="lib\net45\HttpTwo.HPack.dll" />
+    </files>
+</package>
