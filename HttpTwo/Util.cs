@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Net;
+using System.Collections.Specialized;
+using System.IO;
 
 namespace HttpTwo
 {
@@ -36,7 +38,48 @@ namespace HttpTwo
             return BitConverter.ToUInt32 (data, 0);
         }
 
+        public static byte[] PackHeaders (NameValueCollection headers, uint maxHeaderTableSize)
+        {
+            byte[] headerData = new byte[0];
 
+            // Header Block Fragments
+            var hpackEncoder = new HPack.Encoder ((int)maxHeaderTableSize);
+
+            using (var ms = new MemoryStream ()) {
+                using (var bw = new BinaryWriter (ms)) {
+
+                    foreach (var key in headers.AllKeys) {
+                        var values = headers.GetValues (key);
+
+                        foreach (var value in values)
+                            hpackEncoder.EncodeHeader (bw, key, value, false);
+                    }
+                }
+
+                headerData = ms.ToArray ();
+            }
+
+            return headerData;
+        }
+
+        public static NameValueCollection UnpackHeaders (byte[] data, int maxHeaderSize, int maxHeaderTableSize)
+        {
+            var headers = new NameValueCollection ();
+
+            // Decode Header Block Fragments
+            var hpackDecoder = new HPack.Decoder (maxHeaderSize, maxHeaderTableSize);
+            using(var binReader = new BinaryReader (new MemoryStream (data))) {
+
+                hpackDecoder.Decode(binReader, (name, value, sensitive) => 
+                    headers.Add (
+                        System.Text.Encoding.ASCII.GetString (name), 
+                        System.Text.Encoding.ASCII.GetString (value)));
+
+                hpackDecoder.EndHeaderBlock(); // this must be called to finalize the decoding process.
+            }
+
+            return headers;
+        }
     }
 
     static class ByteArrayExtensions

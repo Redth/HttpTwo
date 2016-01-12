@@ -20,7 +20,19 @@ namespace HttpTwo
         public uint StreamIdentifier { get;set; }
     }
 
-    public abstract class Frame
+    public interface IFrame
+    {
+        uint Length { get; }
+        FrameType Type { get; }
+        byte Flags { get; }
+        uint StreamIdentifier { get; set; }
+        IEnumerable<byte> Payload { get; }
+        uint PayloadLength { get; }
+        IEnumerable<byte> ToBytes ();
+        bool IsEndStream { get; }
+    }
+
+    public abstract class Frame : IFrame
     {
         public static Frame Create (FrameType frameType)
         {
@@ -57,7 +69,7 @@ namespace HttpTwo
 
         public uint Length { 
             get {
-                return (uint)Payload.Count ();
+                return PayloadLength;
             }
         }
 

@@ -38,28 +38,28 @@ namespace HttpTwo
                 }
 
                 if (EnablePush.HasValue) {
-                    data.AddRange (BitConverter.GetBytes ((ushort)0x2));
-                    data.Add (EnablePush.Value ? (byte)1 : (byte)0);
+                    data.AddRange (BitConverter.GetBytes ((ushort)0x2).EnsureBigEndian ());
+                    data.AddRange (BitConverter.GetBytes (EnablePush.Value ? (uint)1 : (uint)0).EnsureBigEndian ());
                 }
 
                 if (MaxConcurrentStreams.HasValue) {
-                    data.AddRange (BitConverter.GetBytes ((ushort)0x3));
-                    data.AddRange (BitConverter.GetBytes (MaxConcurrentStreams.Value));
+                    data.AddRange (BitConverter.GetBytes ((ushort)0x3).EnsureBigEndian ());
+                    data.AddRange (BitConverter.GetBytes (MaxConcurrentStreams.Value).EnsureBigEndian ());
                 }
 
                 if (InitialWindowSize.HasValue) {
-                    data.AddRange (BitConverter.GetBytes ((ushort)0x4));
-                    data.AddRange (BitConverter.GetBytes (InitialWindowSize.Value));
+                    data.AddRange (BitConverter.GetBytes ((ushort)0x4).EnsureBigEndian ());
+                    data.AddRange (BitConverter.GetBytes (InitialWindowSize.Value).EnsureBigEndian ());
                 }
 
                 if (MaxFrameSize.HasValue) {
-                    data.AddRange (BitConverter.GetBytes ((ushort)0x5));
+                    data.AddRange (BitConverter.GetBytes ((ushort)0x5).EnsureBigEndian ());
                     data.AddRange (BitConverter.GetBytes (MaxFrameSize.Value));
                 }
 
                 if (MaxHeaderListSize.HasValue) {
-                    data.AddRange (BitConverter.GetBytes ((ushort)0x6));
-                    data.AddRange (BitConverter.GetBytes (MaxHeaderListSize.Value));
+                    data.AddRange (BitConverter.GetBytes ((ushort)0x6).EnsureBigEndian ());
+                    data.AddRange (BitConverter.GetBytes (MaxHeaderListSize.Value).EnsureBigEndian ());
                 }
 
                 return data;
@@ -71,7 +71,7 @@ namespace HttpTwo
             Ack = (frameHeader.Flags & 0x1) == 0x1;
 
             for (int i = 0; i < payloadData.Length; i+=6) {
-
+                
                 var value = BitConverter.ToUInt32 (payloadData, i + 2);
 
                 switch (value) {

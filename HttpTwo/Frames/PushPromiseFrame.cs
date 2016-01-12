@@ -7,7 +7,7 @@ using System.Linq;
 namespace HttpTwo
 {
 
-    public class PushPromiseFrame : Frame
+    public class PushPromiseFrame : Frame, IFrameContainsHeaders
     {
         public PushPromiseFrame () : base ()
         {            
@@ -33,7 +33,7 @@ namespace HttpTwo
         public bool Padded { get; set; }
         public bool EndHeaders { get;set; }
 
-        public NameValueCollection Headers { get;set; }
+        public byte[] HeaderBlockFragment { get;set; }
 
         public uint StreamDependency { get; set; } = 0;
 
@@ -63,25 +63,8 @@ namespace HttpTwo
                 // 1 Bit reserved as unset (0) so let's take the first bit of the next 32 bits and unset it
                 data.AddRange (Util.ConvertToUInt31 (StreamDependency).EnsureBigEndian ());
 
-                // Header Block Fragments
-                var hpackEncoder = new HPack.Encoder (4096);
-
-
-                using (var ms = new MemoryStream ()) {
-                    using (var bw = new BinaryWriter (ms)) {
-
-                        foreach (var key in Headers.AllKeys) {
-                            var values = Headers.GetValues (key);
-
-                            foreach (var value in values)
-                                hpackEncoder.EncodeHeader (bw, key, value, false);                        
-                        }
-                    }
-
-                    var headerData = ms.ToArray ();
-
-                    data.AddRange (headerData);
-                }
+                if (HeaderBlockFragment != null && HeaderBlockFragment.Length > 0)
+                    data.AddRange (HeaderBlockFragment);
 
                 // Add our padding
                 for (int i = 0; i < padLength; i++)
@@ -117,39 +100,25 @@ namespace HttpTwo
 
             // create an array for the header data to read
             // it will be the payload length, minus the pad length value, weight, stream id, and padding
-            var headerData = new byte[payloadData.Length - (index + padLength)];
-            Array.Copy (payloadData, index, headerData, 0, headerData.Length);
-
-            // Decode Header Block Fragments
-            var hpackDecoder = new HPack.Decoder (8192, 4096);
-            using(var binReader = new BinaryReader (new MemoryStream (headerData))) {
-
-                hpackDecoder.Decode(binReader, (name, value, sensitive) => 
-                    Headers.Add (
-                        System.Text.Encoding.ASCII.GetString (name), 
-                        System.Text.Encoding.ASCII.GetString (value)));
-
-                hpackDecoder.EndHeaderBlock(); // this must be called to finalize the decoding process.
-            }
+            HeaderBlockFragment = new byte[payloadData.Length - (index + padLength)];
+            Array.Copy (payloadData, index, HeaderBlockFragment, 0, HeaderBlockFragment.Length);
 
             // Advance the index
-            index += headerData.Length;
+            index += HeaderBlockFragment.Length;
 
             // Don't care about padding
         }
 
         public override string ToString ()
         {
-            var h = String.Join (", ", Headers.AllKeys.Select (n => n + "=" + Headers[n]));
-
-            return string.Format ("[Frame: PUSH_PROMISE, Id={0}, EndStream={1}, EndHeaders={2}, StreamDependency={3}, Padded={4}, PadLength={5}, Headers={6}]", 
+            return string.Format ("[Frame: PUSH_PROMISE, Id={0}, EndStream={1}, EndHeaders={2}, StreamDependency={3}, Padded={4}, PadLength={5}, HeaderBlockFragmentLength={6}]", 
                 StreamIdentifier, 
                 IsEndStream,
                 EndHeaders,
                 StreamDependency,
                 Padded,
                 PadLength,
-                h);
+                HeaderBlockFragment.Length);
         }
     }
 }

@@ -24,7 +24,8 @@ namespace HttpTwo
             var key = request.RequestUri.Scheme + "-" + request.RequestUri.Host + ":" + request.RequestUri.Port;
 
             if (!connections.ContainsKey (key)) 
-                connections.Add (key, new Http2Client (request.RequestUri.Host, (uint)request.RequestUri.Port, request.RequestUri.Scheme == Uri.UriSchemeHttps));                    
+                connections.Add (key, new Http2Client (
+                    new Http2ConnectionSettings (request.RequestUri.Host, (uint)request.RequestUri.Port, request.RequestUri.Scheme == Uri.UriSchemeHttps)));
 
             var client = connections [key];
 

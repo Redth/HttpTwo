@@ -2,45 +2,35 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Threading;
+using System.Collections.Concurrent;
+using System.Linq;
 
 namespace HttpTwo
 {
-    public class HttpStream
+    public class Http2Stream
     {        
-        public HttpStream (Http2Connection connection)
-        {            
-            Init (connection, connection.GetNextId ());
-        }
-
-        public HttpStream (Http2Connection connection, uint streamIdentifier)
+        public Http2Stream (IFlowControlManager flowControlStateManager, uint streamIdentifier)
         {
-            Init (connection, streamIdentifier);
-        }
+            this.flowControlStateManager = flowControlStateManager;
 
-        void Init (Http2Connection connection, uint streamIdentifier)
-        {
-            Connection = connection;
-            Frames = new List<Frame> ();
-            SentFrames = new List<Frame> ();
+            ReceivedFrames = new List<IFrame> ();
+            SentFrames = new List<IFrame> ();
             StreamIdentifer = streamIdentifier;
             State = StreamState.Idle;
         }
 
-        public Http2Connection Connection { get; private set; }
-
         public uint StreamIdentifer { get; private set; }
+        public StreamState State { get; private set; }
 
-        public StreamState State { get; set; }
+        public List<IFrame> ReceivedFrames { get; private set; }
+        public List<IFrame> SentFrames { get; private set; }
 
-        public List<Frame> Frames { get;set; }
+        IFlowControlManager flowControlStateManager;
 
-        public List<Frame> SentFrames { get;set; }
-
-
-        public void ProcessFrame (Frame frame)
+        public void ProcessReceivedFrames (IFrame frame)
         {   
             // Add frame to the list of history
-            Frames.Add (frame);
+            ReceivedFrames.Add (frame);
 
             if (State == StreamState.Idle) {
                 if (frame.Type == FrameType.Headers)
@@ -72,11 +62,18 @@ namespace HttpTwo
                     State = StreamState.Closed;
             }
 
+            // Server has cleared up more window space
+            // Add more to the available window
+            if (frame.Type == FrameType.WindowUpdate) {
+                var windowUpdateFrame = (WindowUpdateFrame)frame;
+                flowControlStateManager.IncreaseWindowSize (StreamIdentifer, windowUpdateFrame.WindowSizeIncrement);
+            }
+
             // Raise the event
             OnFrameReceived?.Invoke (frame);
         }
 
-        public void ProcessSentFrame (Frame frame)
+        public void ProcessSentFrame (IFrame frame)
         {
             SentFrames.Add (frame);
 
@@ -105,10 +102,22 @@ namespace HttpTwo
                 if (frame.Type == FrameType.RstStream)
                     State = StreamState.Closed;
             }
+
+            // If data frame, decrease available window
+            if (frame.Type == FrameType.Data) {
+                var windowDecrement = ((DataFrame)frame).PayloadLength;
+                flowControlStateManager.DecreaseWindowSize (frame.StreamIdentifier, (uint)windowDecrement);
+            }
+
+            // Raise the event
+            OnFrameSent?.Invoke (frame);
         }
         
-        public delegate void FrameReceivedDelegate (Frame frame);
+        public delegate void FrameReceivedDelegate (IFrame frame);
         public event FrameReceivedDelegate OnFrameReceived;
+
+        public delegate void FrameSentDelegate (IFrame frame);
+        public event FrameSentDelegate OnFrameSent;
     }
 
     public enum StreamState {

@@ -40,7 +40,6 @@
     <Compile Include="Frames\GoAwayFrame.cs" />
     <Compile Include="Frames\HeadersFrame.cs" />
     <Compile Include="Frames\PingFrame.cs" />
-    <Compile Include="HttpStream.cs" />
     <Compile Include="Http2Connection.cs" />
     <Compile Include="Http2Client.cs" />
     <Compile Include="Http2MessageHandler.cs" />
@@ -50,6 +49,11 @@
     <Compile Include="Frames\PriorityFrame.cs" />
     <Compile Include="Frames\PushPromiseFrame.cs" />
     <Compile Include="Http2Settings.cs" />
+    <Compile Include="FrameQueue.cs" />
+    <Compile Include="StreamManager.cs" />
+    <Compile Include="FlowControlManager.cs" />
+    <Compile Include="Logging.cs" />
+    <Compile Include="Http2Stream.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

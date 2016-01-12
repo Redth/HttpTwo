@@ -8,9 +8,39 @@ using System.Threading.Tasks;
 using System.Threading;
 using System.Net;
 using System.Security.Cryptography.X509Certificates;
+using System.Collections.Concurrent;
 
 namespace HttpTwo
 {
+    public class Http2ConnectionSettings
+    {
+        public Http2ConnectionSettings (string url,  X509CertificateCollection certificates = null)
+            : this (new Uri (url), certificates)
+        {
+        }
+
+        public Http2ConnectionSettings (Uri uri,  X509CertificateCollection certificates = null)
+            : this (uri.Host, (uint)uri.Port, uri.Scheme == Uri.UriSchemeHttps, certificates)
+        {
+        }
+
+        public Http2ConnectionSettings (string host, uint port = 80, bool useTls = false, X509CertificateCollection certificates = null)
+        {
+            Host = host;
+            Port = port;
+            UseTls = useTls;
+            Certificates = certificates;
+        }
+
+        public string Host { get; private set; }
+        public uint Port { get; private set; }
+        public bool UseTls { get; private set; }
+        public X509CertificateCollection Certificates { get; private set; }
+
+        public TimeSpan ConnectionTimeout { get; set; } = TimeSpan.FromSeconds (60);
+        public bool DisablePushPromise { get; set; } = false;
+    }
+
     public class Http2Connection
     {
         public const string ConnectionPreface = "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n";
@@ -21,51 +51,23 @@ namespace HttpTwo
                 (sender, certificate, chain, sslPolicyErrors) => true;
         }
 
-        const uint STREAM_ID_MAX_VALUE = 1073741823;
-
-        public uint NextStreamId { get; private set; }
-
-        internal uint GetNextId ()
+        public Http2Connection (Http2ConnectionSettings connectionSettings, IStreamManager streamManager, IFlowControlManager flowControlManager)
         {
-            var nextId = NextStreamId;
+            this.flowControlManager = flowControlManager;
+            this.streamManager = streamManager;
 
-            // Increment for next use, by 2, must always be odd if initiated from client
-            NextStreamId += 2;
-
-            // Wrap around if we hit max
-            if (NextStreamId > STREAM_ID_MAX_VALUE) {
-                // TODO: Disconnect so we can reset the stream id
-            }
-
-            return nextId;
-        }
-
-
-
-        public Http2Connection (string host, uint port, bool useTls = false)
-        {
-            Init(host, port, useTls);
-        }
-        
-        void Init (string host, uint port, bool useTls = false)
-        {
-            Host = host;
-            Port = port;
-            UseTls = useTls;
-            ConnectionTimeout = TimeSpan.FromSeconds (60);
-            Streams = new Dictionary<uint, HttpStream> ();
+            ConnectionSettings = connectionSettings;
             Settings = new Http2Settings ();
+
+            queue = new FrameQueue (flowControlManager);
         }
 
         public Http2Settings Settings { get; private set; }
+        public Http2ConnectionSettings ConnectionSettings { get; private set; }
 
-        public X509CertificateCollection Certificates { get; set; }
-        public bool UseTls { get; private set; }
-        public string Host { get; private set; }
-        public uint Port { get; private set; }
-        public TimeSpan ConnectionTimeout { get; set; }
-
-        public Dictionary<uint, HttpStream> Streams { get; private set; }
+        IFlowControlManager flowControlManager;
+        IStreamManager streamManager;
+        FrameQueue queue;
 
         TcpClient tcp;
         Stream clientStream;
@@ -76,23 +78,20 @@ namespace HttpTwo
             if (IsConnected ())
                 return;
 
-            // Reset the stream Identifier on a new connection
-            NextStreamId = 1;
-
             tcp = new TcpClient ();
 
             // Disable Nagle for HTTP/2
             tcp.NoDelay = true;
 
-            await tcp.ConnectAsync (Host, (int)Port);
+            await tcp.ConnectAsync (ConnectionSettings.Host, (int)ConnectionSettings.Port);
 
-            if (UseTls) {
+            if (ConnectionSettings.UseTls) {
                 sslStream = new SslStream (tcp.GetStream (), false, 
                     (sender, certificate, chain, sslPolicyErrors) => true);
                 
                 await sslStream.AuthenticateAsClientAsync (
-                    Host, 
-                    Certificates ?? new X509CertificateCollection (), 
+                    ConnectionSettings.Host, 
+                    ConnectionSettings.Certificates ?? new X509CertificateCollection (), 
                     System.Security.Authentication.SslProtocols.Tls12, 
                     false);
 
@@ -100,6 +99,9 @@ namespace HttpTwo
             } else {
                 clientStream = tcp.GetStream ();
             }
+
+            // Ensure we have a size for the stream '0'
+            flowControlManager.GetWindowSize (0);
 
             // Send out preface data
             var prefaceData = System.Text.Encoding.ASCII.GetBytes (ConnectionPreface);
@@ -110,7 +112,7 @@ namespace HttpTwo
             var readTask = Task.Factory.StartNew (() => {
                 try { read (); }
                 catch (Exception ex) {
-                    Console.WriteLine ("Read error: " + ex);
+                    Log.Debug ("Read error: " + ex);
                     Disconnect ();
                 }
             }, TaskCreationOptions.LongRunning);
@@ -120,19 +122,33 @@ namespace HttpTwo
                 Disconnect ();
             }, TaskContinuationOptions.OnlyOnFaulted);
 
-            // Send an un-ACK'd settings frame
-            await SendFrame(new SettingsFrame()); // { EnablePush = false });
+            // Start a thread to handle writing queued frames to the stream
+            var writeTask = Task.Factory.StartNew (write, TaskCreationOptions.LongRunning);
+            writeTask.ContinueWith (t => {
+                // TODO: Handle the error
+                Disconnect ();
+            }, TaskContinuationOptions.OnlyOnFaulted);
+
+            // Send initial blank settings frame
+            var s = new SettingsFrame ();
+            if (ConnectionSettings.DisablePushPromise)
+                s.EnablePush = false;
+
+            await QueueFrame (s);
         }
 
-        void Disconnect ()
+        public void Disconnect ()
         {
+            // complete the blocking collection 
+            queue.Complete ();
+
             //We now expect apple to close the connection on us anyway, so let's try and close things
             // up here as well to get a head start
             //Hopefully this way we have less messages written to the stream that we have to requeue
             try { clientStream.Close (); } catch { }
             try { clientStream.Dispose (); } catch { }
 
-            if (UseTls && sslStream != null) {
+            if (ConnectionSettings.UseTls && sslStream != null) {
                 try { sslStream.Close (); } catch { }
                 try { sslStream.Dispose (); } catch { }
             }
@@ -162,72 +178,17 @@ namespace HttpTwo
             return true;
         }
 
-        SemaphoreSlim lockStreams = new SemaphoreSlim (1);
-
-        public async Task<HttpStream> GetStream (uint streamIdentifier)
-        {
-            await lockStreams.WaitAsync ();
-
-            HttpStream stream = null;
-
-            if (!Streams.ContainsKey (streamIdentifier)) {
-                stream = new HttpStream (this, streamIdentifier);
-                Streams.Add (streamIdentifier, stream);
-            } else {
-                stream = Streams [streamIdentifier];
-            }
-
-            lockStreams.Release ();
-
-            return stream;
-        }
-
-        public async Task<HttpStream> CreateStream ()
-        {
-            await lockStreams.WaitAsync ();
-
-            var stream = new HttpStream (this);
-
-            Streams.Add (stream.StreamIdentifer, stream);
-
-            lockStreams.Release ();
-
-            return stream;
-        }
-
-        public async Task CleanupStream (uint streamIdentifier)
-        {
-            await lockStreams.WaitAsync ();
-
-            if (Streams.ContainsKey (streamIdentifier))
-                Streams.Remove (streamIdentifier);
-
-            lockStreams.Release ();
-        }
-
         SemaphoreSlim lockWrite = new SemaphoreSlim (1);
 
-        public async Task SendFrame (Frame frame)
+        public async Task QueueFrame (IFrame frame)
         {
-            var data = frame.ToBytes ().ToArray ();
-
-            await lockWrite.WaitAsync ();
-
-            try {
-                await clientStream.WriteAsync(data, 0, data.Length);
-                await clientStream.FlushAsync();
-                var stream = await GetStream (frame.StreamIdentifier);
-                stream.ProcessSentFrame (frame);
-            } catch {
-            } finally {
-                lockWrite.Release();
-            }
+            await queue.Enqueue (frame);
         }
 
         readonly List<byte> buffer = new List<byte> ();
 
         async void read ()
-        {                        
+        {
             int rx = 0;
             byte[] b = new byte[4096];
 
@@ -245,7 +206,7 @@ namespace HttpTwo
                         buffer.Add (b [i]);
                     
                     while (true) 
-                    {                                                
+                    {
                         // We need at least 9 bytes to process the frame 
                         // 9 octets is the frame header length
                         if (buffer.Count < 9)
@@ -278,110 +239,52 @@ namespace HttpTwo
                         //var frameFlags = data [4]; // 5th byte is FLAGS
 
                         // we need to turn the stream id into a uint
-                        var frameStreamIdData = new byte[4]; 
+                        var frameStreamIdData = new byte[4];
                         Array.Copy (data, 5, frameStreamIdData, 0, 4);
                         uint frameStreamId = Util.ConvertFromUInt31 (frameStreamIdData.EnsureBigEndian ());
 
-                        Frame frame = null;
-
-                        var ft = (FrameType)frameType;
-
-                        switch (ft) {
-                        case FrameType.Data:
-                            frame = new DataFrame ();
-                            break;
-                        case FrameType.Headers:
-                            frame = new HeadersFrame ();
-                            break;
-                        case FrameType.Priority:
-                            frame = new PriorityFrame ();
-                            break;
-                        case FrameType.RstStream:
-                            frame = new RstStreamFrame ();
-                            break;
-                        case FrameType.Settings:
-                            frame = new SettingsFrame ();
-                            break;
-                        case FrameType.PushPromise:
-                            frame = new PushPromiseFrame ();
-                            break;
-                        case FrameType.Ping:
-                            frame = new PingFrame ();
-                            break;
-                        case FrameType.GoAway:
-                            frame = new GoAwayFrame ();
-                            break;
-                        case FrameType.WindowUpdate:
-                            frame = new WindowUpdateFrame ();
-                            break;
-                        case FrameType.Continuation:
-                            frame = new ContinuationFrame ();
-                            break;
-                        }
+                        // Create a new typed instance of our abstract Frame
+                        var frame = Frame.Create ((FrameType)frameType);
 
                         try {
                             // Call the specific subclass implementation to parse
-                            if (frame != null)
-                                frame.Parse (data);
+                            frame.Parse (data);
                         } catch (Exception ex) {
-                            Console.WriteLine ("Parsing Frame Failed: " + ex);
+                            Log.Error ("Parsing Frame Failed: {0}", ex);
                             throw ex;
                         }
 
+                        Log.Debug ("<- {0}", frame);
+
                         // If it's a settings frame, we should note the values and
                         // return the frame with the Ack flag set
-                        if (ft == FrameType.Settings) {
+                        if (frame.Type == FrameType.Settings) {
 
                             var settingsFrame = frame as SettingsFrame;
 
-                            if (settingsFrame.EnablePush.HasValue)
-                                Settings.EnablePush = settingsFrame.EnablePush.Value;
-                            if (settingsFrame.HeaderTableSize.HasValue)
-                                Settings.HeaderTableSize = settingsFrame.HeaderTableSize.Value;
-                            if (settingsFrame.InitialWindowSize.HasValue)
-                                Settings.InitialWindowSize = settingsFrame.InitialWindowSize.Value;
-                            if (settingsFrame.MaxConcurrentStreams.HasValue)
-                                Settings.MaxConcurrentStreams = settingsFrame.MaxConcurrentStreams.Value;
-                            if (settingsFrame.MaxFrameSize.HasValue)
-                                Settings.MaxFrameSize = settingsFrame.MaxFrameSize.Value;
-                            if (settingsFrame.MaxHeaderListSize.HasValue)
-                                Settings.MaxHeaderListSize = settingsFrame.MaxHeaderListSize.Value;
-                            
-                            settingsFrame.Ack = true;
-                            await SendFrame (settingsFrame);
-                        }
+                            // Update our instance of settings with the new data
+                            Settings.UpdateFromFrame (settingsFrame, flowControlManager);
 
-                        // TODO: Process window update
-                        if (ft == FrameType.WindowUpdate) {
-                            var windowUpdateFrame = frame as WindowUpdateFrame;
+                            // See if this was an ack, if not, return an empty 
+                            // ack'd settings frame
+                            if (!settingsFrame.Ack)
+                                await QueueFrame (new SettingsFrame { Ack = true });
 
-                            //windowUpdateFrame.WindowSizeIncrement
-                        }
+                        } else if (frame.Type == FrameType.Ping) {
 
-                        if (ft == FrameType.Ping) {
                             var pingFrame = frame as PingFrame;
                             // See if we need to respond to the ping request (if it's not-ack'd)
                             if (!pingFrame.Ack) {
                                 // Ack and respond
                                 pingFrame.Ack = true;
-                                await SendFrame (pingFrame);
+                                await QueueFrame (pingFrame);
                             }
+
                         }
 
-                        try {
-                            if (frameStreamId == 0) {
-                                foreach (var s in Streams) {
-                                    if (s.Value.State != StreamState.Closed)
-                                        s.Value.ProcessFrame(frame);
-                                }
-                            } else {
-                                var stream = await GetStream(frameStreamId);
-                                stream.ProcessFrame(frame);
-                            }
-                        } catch (Exception ex) {
-                            Console.WriteLine ("Error Processing Frame: " + ex);
-                            throw ex;
-                        }
+                        // Some other frame type, just pass it along to the stream
+                        var stream = await streamManager.Get(frameStreamId);
+                        stream.ProcessReceivedFrames(frame);
                     }
 
                 } else {
@@ -393,7 +296,33 @@ namespace HttpTwo
             // Cleanup
             Disconnect();
         }
+
+        async Task write ()
+        {
+            foreach (var frame in queue.GetConsumingEnumerable ()) {
+                if (frame == null) {
+                    Log.Info ("Null frame dequeued");
+                    continue;
+                }
+
+                Log.Debug ("-> {0}", frame);
+
+                var data = frame.ToBytes ().ToArray ();
+
+                await lockWrite.WaitAsync ();
+
+                try {
+                    await clientStream.WriteAsync(data, 0, data.Length);
+                    await clientStream.FlushAsync();
+                    var stream = await streamManager.Get (frame.StreamIdentifier);
+                    stream.ProcessSentFrame (frame);
+                } catch (Exception ex) {
+                    Log.Warn ("Error writing frame: {0}, {1}", frame.StreamIdentifier, ex);
+                } finally {
+                    lockWrite.Release();
+                }
+            }
+        }
     }
 
 }
-

@@ -43,10 +43,10 @@ namespace HttpTwo
         {
             Ack = (frameHeader.Flags & 0x1) == 0x1;
 
-            opaqueData = new byte[64];
+            opaqueData = new byte[payloadData.Length];
 
             if (payloadData != null)
-                Array.Copy (payloadData, 0, opaqueData, 0, opaqueData.Length);
+                Array.Copy (payloadData, 0, opaqueData, 0, payloadData.Length);
         }
 
         public override string ToString ()
@@ -54,7 +54,7 @@ namespace HttpTwo
             return string.Format ("[Frame: PING, Id={0}, Ack={1}, OpaqueData={2}]", 
                 StreamIdentifier, 
                 Ack, 
-                OpaqueData);
+                OpaqueData.Length);
         }
     }
 }
