@@ -10,7 +10,7 @@ namespace HttpTwo.Tests
     [TestFixture]
     public class HttpTests
     {
-        const bool UseInternalHttpRunner = false;
+        const bool UseInternalHttpRunner = true;
 
         NodeHttp2Runner node;
 
@@ -26,7 +26,7 @@ namespace HttpTwo.Tests
             
                 node.StartServer ();
                 // Wait for the server to initialize
-                System.Threading.Thread.Sleep (2000);
+                Thread.Sleep (2000);
             }
         }
 
