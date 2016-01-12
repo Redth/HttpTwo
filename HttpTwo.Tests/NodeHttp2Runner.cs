@@ -50,7 +50,7 @@ namespace HttpTwo.Tests
 
         public void StopServer ()
         {
-            if (process != null && process.HasExited) { 
+            if (process != null && !process.HasExited) { 
                 process.Kill ();
                 process.Close ();
                 process = null;
