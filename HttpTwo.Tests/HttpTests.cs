@@ -22,7 +22,7 @@ namespace HttpTwo.Tests
 
             if (UseInternalHttpRunner) {
                 node = new NodeHttp2Runner ();
-                node.LogHandler = System.Diagnostics.Debug.WriteLine;
+                node.LogHandler = Console.WriteLine;
             
                 node.StartServer ();
                 // Wait for the server to initialize
