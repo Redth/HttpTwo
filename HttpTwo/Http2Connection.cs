@@ -73,6 +73,11 @@ namespace HttpTwo
         Stream clientStream;
         SslStream sslStream;
 
+        long receivedDataCount = 0;
+        public uint ReceivedDataCount {
+            get { return (uint)Interlocked.Read (ref receivedDataCount); }
+        }
+
         public async Task Connect ()
         {
             if (IsConnected ())
@@ -187,6 +192,19 @@ namespace HttpTwo
             await queue.Enqueue (frame).ConfigureAwait (false);
         }
 
+        public async Task FreeUpWindowSpace ()
+        {
+            var sizeToFree = Interlocked.Exchange (ref receivedDataCount, 0);
+
+            if (sizeToFree <= 0)
+                return;
+            
+            await QueueFrame (new WindowUpdateFrame {
+                StreamIdentifier = 0,
+                WindowSizeIncrement = (uint)sizeToFree
+            }).ConfigureAwait (false);
+        }
+
         readonly List<byte> buffer = new List<byte> ();
 
         async void read ()
@@ -279,6 +297,10 @@ namespace HttpTwo
                                 await QueueFrame (pingFrame).ConfigureAwait (false);
                             }
 
+                        } else if (frame.Type == FrameType.Data) {
+
+                            // Increment our received data counter
+                            Interlocked.Add (ref receivedDataCount, frame.PayloadLength);
                         }
 
                         // Some other frame type, just pass it along to the stream

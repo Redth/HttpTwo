@@ -197,6 +197,10 @@ namespace HttpTwo
             // Remove the stream from being tracked since we're done with it
             await streamManager.Cleanup (stream.StreamIdentifer).ConfigureAwait (false);
 
+            // Send a WINDOW_UPDATE frame to release our stream's data count
+            // TODO: Eventually need to do this on the stream itself too (if it's open)
+            await connection.FreeUpWindowSpace ().ConfigureAwait (false);
+
             return new Http2Response {
                 Status = statusCode,
                 Stream = stream,
