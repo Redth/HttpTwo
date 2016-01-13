@@ -14,10 +14,11 @@ It's currently not very well tested and lacks some implementation details.
  - All frame types can be parsed and can be generated to send to a stream
  - HPack for frames that send headers (thanks to @ringostarr80)
  - Flow control is implemented in theory but not well tested
+ - WINDOW_UPDATEs on the connection level (not yet per stream)
  - Simple requests should work
   
 **What's not working / not implemented:**
- - Missing sending of WINDOW_UPDATE frames as the client processes data
+ - Missing sending of WINDOW_UPDATE frames for streams, but streams aren't very long lived yet so it shouldn't be too bad - except for when receiving large downloads/data sets from a request
  - No optimizations for large amounts of data sent/received (there may be a lot of request/response data that gets processed completely in memory currently)
  - Secure connections require TLS 1.2 according to the RFC so they won't work on Mono at this point
  - No ALPN support (see below)
