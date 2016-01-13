@@ -22,7 +22,7 @@ namespace HttpTwo
         public List<IFrame> ReceivedFrames { get; private set; }
         public List<IFrame> SentFrames { get; private set; }
 
-        IFlowControlManager flowControlStateManager;
+        readonly IFlowControlManager flowControlStateManager;
 
         public void ProcessReceivedFrames (IFrame frame)
         {   
