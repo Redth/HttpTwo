@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using HttpTwo.Internal;
 
 namespace HttpTwo
 {

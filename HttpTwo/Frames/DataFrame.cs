@@ -8,7 +8,7 @@ namespace HttpTwo
         public DataFrame() : base ()
         {
         }
-        
+
         public DataFrame (uint streamIdentifier) : base ()
         {
             StreamIdentifier = streamIdentifier;
@@ -16,9 +16,7 @@ namespace HttpTwo
 
         uint padLength = 0;
         public uint PadLength { 
-            get { 
-                return padLength;
-            }
+            get { return padLength; }
             set {
                 if (value > 255)
                     throw new ArgumentOutOfRangeException ("value", "Must be less than or equal to 255");
@@ -28,7 +26,6 @@ namespace HttpTwo
         public bool Padded { get; set; }
         public bool EndStream { get; set; }
 
-        // type=0x0
         public override FrameType Type {
             get { return FrameType.Data; }
         }
@@ -49,7 +46,7 @@ namespace HttpTwo
                 var data = new List<byte> ();
 
                 // Add the padding length - optional
-                if (Padded && padLength > 0)                    
+                if (Padded && padLength > 0)
                     data.Add ((byte)padLength);
 
                 // Add the frame data
@@ -58,7 +55,7 @@ namespace HttpTwo
 
                 // Add our padding
                 for (int i = 0; i < padLength; i++)
-                    data.Add (0x0);              
+                    data.Add (0x0);
 
                 return data;
             }

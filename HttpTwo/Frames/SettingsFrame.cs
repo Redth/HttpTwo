@@ -1,14 +1,13 @@
 using System;
 using System.Collections.Generic;
+using HttpTwo.Internal;
 
 namespace HttpTwo
 {
-
     public class SettingsFrame : Frame
     {
         public bool Ack { get; set; }
 
-        // type=0x4
         public override FrameType Type {
             get { return FrameType.Settings; }
         }

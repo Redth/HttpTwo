@@ -1,12 +1,10 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Collections.Specialized;
+using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Collections.Specialized;
-using System.Text;
-using System.Linq;
-using System.Net;
-using System.Collections.Generic;
 
 namespace HttpTwo
 {
@@ -17,7 +15,7 @@ namespace HttpTwo
             connections = new Dictionary<string, Http2Client> ();
         }
 
-        Dictionary<string, Http2Client> connections;
+        readonly Dictionary<string, Http2Client> connections;
 
         protected override async Task<HttpResponseMessage> SendAsync (HttpRequestMessage request, CancellationToken cancellationToken)
         {
@@ -32,7 +30,7 @@ namespace HttpTwo
             byte[] data = null;
 
             if (request.Content != null)
-                data = await request.Content.ReadAsByteArrayAsync ();
+                data = await request.Content.ReadAsByteArrayAsync ().ConfigureAwait (false);
 
             // Add the other headers (some might not make sense)
             var headers = new NameValueCollection ();
@@ -41,7 +39,7 @@ namespace HttpTwo
                     headers.Add (header.Key, value);
             }
 
-            var response = await client.Send (request.RequestUri, request.Method, headers, data);
+            var response = await client.Send (request.RequestUri, request.Method, headers, data).ConfigureAwait (false);
 
             var httpResponseMsg = new HttpResponseMessage (response.Status);
 
@@ -57,4 +55,3 @@ namespace HttpTwo
         }
     }
 }
-

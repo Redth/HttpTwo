@@ -1,12 +1,12 @@
 ﻿using System;
-using System.Net;
 using System.Collections.Specialized;
 using System.IO;
+using System.Threading.Tasks;
 
-namespace HttpTwo
+namespace HttpTwo.Internal
 {
     public static class Util
-    {        
+    {
         public static byte ClearBit (byte target, int bitIndex)
         {
             int x = Convert.ToInt32(target);
@@ -22,7 +22,7 @@ namespace HttpTwo
         public static byte[] ConvertToUInt31 (uint original)
         {
             // 1 Bit reserved as unset (0) so let's take the first bit of the next 32 bits and unset it
-            var data = BitConverter.GetBytes (original);         
+            var data = BitConverter.GetBytes (original);
             data [3] = Util.ClearBit (data [3], 7);
 
             return data;
@@ -92,5 +92,12 @@ namespace HttpTwo
             return src;
         }
     }
-}
 
+    static class TaskExceptions
+    {
+        public static void Forget (this Task task)
+        {
+            //var a = task.ConfigureAwait(false);
+        }
+    }
+}

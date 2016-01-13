@@ -1,16 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Collections.Specialized;
-using System.Linq;
+using HttpTwo.Internal;
 
 namespace HttpTwo
 {
-
     public class PushPromiseFrame : Frame, IFrameContainsHeaders
     {
         public PushPromiseFrame () : base ()
-        {            
+        {
         }
 
         public PushPromiseFrame (uint streamIdentifier) : base ()
@@ -20,9 +17,7 @@ namespace HttpTwo
 
         ushort padLength = 0;
         public ushort PadLength { 
-            get { 
-                return padLength;
-            }
+            get { return padLength; }
             set {
                 if (value > 255)
                     throw new ArgumentOutOfRangeException ("value", "Must be less than or equal to 255");
@@ -37,7 +32,6 @@ namespace HttpTwo
 
         public uint StreamDependency { get; set; } = 0;
 
-        // type=0x1
         public override FrameType Type {
             get { return FrameType.PushPromise; }
         }
@@ -68,7 +62,7 @@ namespace HttpTwo
 
                 // Add our padding
                 for (int i = 0; i < padLength; i++)
-                    data.Add (0x0);              
+                    data.Add (0x0);
 
                 return data.ToArray ();
             }

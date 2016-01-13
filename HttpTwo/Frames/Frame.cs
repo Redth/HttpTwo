@@ -2,17 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.IO;
-using System.Collections.Specialized;
-using System.Net.Security;
-using System.Net.Sockets;
-using System.Threading.Tasks;
-using System.Threading;
+using HttpTwo.Internal;
 
 namespace HttpTwo
 {
     public class FrameHeader
     {
-        public const int FRAME_HEADER_LENGTH = 9;
+        public const int FrameHeaderLength = 9;
 
         public uint Length { get;set; }
         public byte Type { get;set; }
@@ -129,14 +125,14 @@ namespace HttpTwo
             // Now the payload
             data.AddRange (payloadData);
 
-            return data;             
+            return data;
         }
 
         internal void Parse (byte[] data)
         {
             if (data.Length < 9)
                 throw new InvalidDataException ("data[] is missing frame header");
-            
+
             // Find out the frame length
             // which is a 24 bit uint, so we need to convert this as c# uint is 32 bit
             var flen = new byte[4];
@@ -151,7 +147,7 @@ namespace HttpTwo
             // we should keep reading from the stream 
             if (data.Length - 9 < frameLength)
                 throw new InvalidDataException ("Length of data[] does not match frame length in data");
-            
+
             var frameType = data [3]; // 4th byte in frame header is TYPE
             var frameFlags = data [4]; // 5th byte is FLAGS
 
@@ -159,7 +155,7 @@ namespace HttpTwo
             var frameStreamIdData = new byte[4]; 
             Array.Copy (data, 5, frameStreamIdData, 0, 4);
             this.StreamIdentifier = Util.ConvertFromUInt31 (frameStreamIdData.EnsureBigEndian ());
-              
+
             //this.Type = frameType;
             this.Flags = frameFlags;
 
@@ -198,5 +194,4 @@ namespace HttpTwo
         WindowUpdate = 0x8,
         Continuation = 0x9
     }
-    
 }

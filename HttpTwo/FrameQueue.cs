@@ -4,7 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Linq;
 
-namespace HttpTwo
+namespace HttpTwo.Internal
 {
     public class FrameQueue
     {
@@ -25,7 +25,7 @@ namespace HttpTwo
             // Add our priority lists 
             frameQueues = new Dictionary<int, List<IFrame>> ();
             foreach (var p in PRIORITIES)
-                frameQueues.Add (p, new List<IFrame> ());            
+                frameQueues.Add (p, new List<IFrame> ());
         }
 
         IFlowControlManager flowControlManager;
@@ -40,7 +40,7 @@ namespace HttpTwo
 
         public async Task Enqueue (IFrame frame)
         {
-            await semaphoreFrames.WaitAsync ();
+            await semaphoreFrames.WaitAsync ().ConfigureAwait (false);
 
             try {
                 var priority = GetPriority (frame.Type);
@@ -123,7 +123,6 @@ namespace HttpTwo
                             if (frames.Take (frameIndex)
                                 .Any (f => f.StreamIdentifier == frame.StreamIdentifier && f.Type == FrameType.Data))
                                 continue;
-                                
                         }
 
                         // If we made it this far, we found a frame we can send
@@ -168,4 +167,3 @@ namespace HttpTwo
         }
     }
 }
-

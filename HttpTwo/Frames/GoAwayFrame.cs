@@ -1,27 +1,19 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.IO;
-using System.Collections.Specialized;
-using System.Net.Security;
-using System.Net.Sockets;
-using System.Threading.Tasks;
-using System.Threading;
+using HttpTwo.Internal;
 
 namespace HttpTwo
 {
-
     public class GoAwayFrame : Frame
     {
         public uint LastStreamId { get;set; }
         public uint ErrorCode { get;set; }
         public byte[] AdditionalDebugData { get; set; }
 
-        // type=0x7
         public override FrameType Type {
             get { return FrameType.GoAway; }
         }
-            
+
         public override IEnumerable<byte> Payload {
             get {
                 var data = new List<byte> ();
@@ -34,7 +26,7 @@ namespace HttpTwo
                 if (AdditionalDebugData != null && AdditionalDebugData.Length > 0)
                     data.AddRange (AdditionalDebugData);
 
-                return data;               
+                return data;
             }
         }
 
@@ -70,5 +62,4 @@ namespace HttpTwo
                 debug);
         }
     }
-    
 }

@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace HttpTwo
+namespace HttpTwo.Internal
 {
     public static class Log
     {
@@ -62,7 +62,7 @@ namespace HttpTwo
 
         void write (string format, params object[] args)
         {
-            System.Diagnostics.Debug.WriteLine (DateTime.Now.ToString ("hh:MM:ss.fff tt") + ": " + string.Format (format, args));
+            Console.WriteLine (DateTime.Now.ToString ("hh:MM:ss.fff tt") + ": " + string.Format (format, args));
         }
     }
 
@@ -85,4 +85,3 @@ namespace HttpTwo
         Info = 4,
     }
 }
-

@@ -1,9 +1,9 @@
 ﻿using NUnit.Framework;
 using System;
 using System.Net.Http;
-using System.Linq;
 using System.Collections.Specialized;
 using System.Threading;
+using HttpTwo.Internal;
 
 namespace HttpTwo.Tests
 {

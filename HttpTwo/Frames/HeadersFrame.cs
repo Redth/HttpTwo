@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Collections.Specialized;
-using System.Linq;
+using HttpTwo.Internal;
 
 namespace HttpTwo
 {
@@ -25,36 +23,31 @@ namespace HttpTwo
 
         ushort padLength = 0;
         public ushort PadLength { 
-            get { 
-                return padLength;
-            }
+            get { return padLength; }
             set {
                 if (value > 255)
                     throw new ArgumentOutOfRangeException ("value", "Must be less than or equal to 255");
                 padLength = value;
             }
         }
+
         ushort weight = 0;
         public ushort Weight { 
-            get { 
-                return weight;
-            }
+            get { return weight; }
             set {
                 if (value > 255)
                     throw new ArgumentOutOfRangeException ("value", "Must be less than or equal to 255");
                 weight = value;
             }
         }
+
         public bool Padded { get; set; }
         public bool EndStream { get; set; }
         public bool EndHeaders { get;set; }
         public bool Priority { get;set; }
-
         public byte[] HeaderBlockFragment { get; set; }
-
         public uint StreamDependency { get; set; } = 0;
 
-        // type=0x1
         public override FrameType Type {
             get { return FrameType.Headers; }
         }
@@ -94,7 +87,7 @@ namespace HttpTwo
 
                 // Add our padding
                 for (int i = 0; i < padLength; i++)
-                    data.Add (0x0);              
+                    data.Add (0x0);
 
                 return data.ToArray ();
             }

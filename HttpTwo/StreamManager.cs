@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
 using System.Threading;
+using System.Threading.Tasks;
 
-namespace HttpTwo
+namespace HttpTwo.Internal
 {
     public interface IStreamManager
     {
@@ -52,7 +52,7 @@ namespace HttpTwo
 
         public async Task<Http2Stream> Get (uint streamIdentifier)
         {
-            await lockStreams.WaitAsync ();
+            await lockStreams.WaitAsync ().ConfigureAwait (false);
 
             Http2Stream stream = null;
 
@@ -70,7 +70,7 @@ namespace HttpTwo
 
         public async Task<Http2Stream> Get ()
         {
-            await lockStreams.WaitAsync ();
+            await lockStreams.WaitAsync ().ConfigureAwait (false);
 
             var stream = new Http2Stream (flowControlManager, GetNextIdentifier ());
 
@@ -83,7 +83,7 @@ namespace HttpTwo
 
         public async Task Cleanup (uint streamIdentifier)
         {
-            await lockStreams.WaitAsync ();
+            await lockStreams.WaitAsync ().ConfigureAwait (false);
 
             if (streams.ContainsKey (streamIdentifier))
                 streams.Remove (streamIdentifier);

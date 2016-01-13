@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace HttpTwo
 {
     public class PingFrame : Frame
-    {        
+    {
         public bool Ack { get;set; }
 
         public override FrameType Type {

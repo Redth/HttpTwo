@@ -1,4 +1,5 @@
 ﻿using System;
+using HttpTwo.Internal;
 
 namespace HttpTwo.Tests
 {

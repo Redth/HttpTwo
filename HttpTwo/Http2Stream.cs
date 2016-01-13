@@ -1,9 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
-using System.Threading;
-using System.Collections.Concurrent;
-using System.Linq;
+using HttpTwo.Internal;
 
 namespace HttpTwo
 {
@@ -32,34 +29,41 @@ namespace HttpTwo
             // Add frame to the list of history
             ReceivedFrames.Add (frame);
 
-            if (State == StreamState.Idle) {
+            switch (State) {
+            case StreamState.Idle:
                 if (frame.Type == FrameType.Headers)
                     State = StreamState.Open;
                 else if (frame.Type == FrameType.PushPromise)
                     State = StreamState.ReservedRemote;
-                else if (frame.Type == FrameType.Priority)
-                    ;
-                else
-                    ; // TODO: PROTOCOL_ERROR
-            } else if (State == StreamState.ReservedLocal) {
+//                else if (frame.Type == FrameType.Priority)
+//                    ;
+//                else
+//                    ;
+                break;
+            case StreamState.ReservedLocal:
                 if (frame.Type == FrameType.RstStream)
                     State = StreamState.Closed;
-            } else if (State == StreamState.HalfClosedRemote) {
+                break;
+            case StreamState.HalfClosedRemote:
                 if (frame.Type == FrameType.RstStream)
                     State = StreamState.Closed;
-            } else if (State == StreamState.Open) {
+                break;
+            case StreamState.Open:
                 if (frame.IsEndStream)
                     State = StreamState.HalfClosedRemote;
                 if (frame.Type == FrameType.RstStream)
                     State = StreamState.Closed;
-            } else if (State == StreamState.ReservedRemote) {
+                break;
+            case StreamState.ReservedRemote:
                 if (frame.Type == FrameType.Headers)
                     State = StreamState.HalfClosedLocal;
                 else if (frame.Type == FrameType.RstStream)
                     State = StreamState.Closed;
-            } else if (State == StreamState.HalfClosedLocal) {
+                break;
+            case StreamState.HalfClosedLocal:
                 if (frame.IsEndStream || frame.Type == FrameType.RstStream)
                     State = StreamState.Closed;
+                break;
             }
 
             // Server has cleared up more window space
@@ -77,36 +81,43 @@ namespace HttpTwo
         {
             SentFrames.Add (frame);
 
-            if (State == StreamState.Idle) {
+            switch (State) {
+            case StreamState.Idle:
                 if (frame.Type == FrameType.PushPromise)
                     State = StreamState.ReservedLocal;
                 else if (frame.Type == FrameType.Headers)
                     State = StreamState.Open;
-            } else if (State == StreamState.ReservedLocal) {
+                break;
+            case StreamState.ReservedLocal:
                 if (frame.Type == FrameType.Headers)
                     State = StreamState.HalfClosedRemote;
                 else if (frame.Type == FrameType.RstStream)
                     State = StreamState.Closed;
-            } else if (State == StreamState.HalfClosedRemote) {
+                break;
+            case StreamState.HalfClosedRemote:
                 if (frame.IsEndStream || frame.Type == FrameType.RstStream)
-                    State = StreamState.Closed;                
-            } else if (State == StreamState.Open) {
+                    State = StreamState.Closed;
+                break;
+            case StreamState.Open:
                 if (frame.IsEndStream)
                     State = StreamState.HalfClosedLocal;
                 if (frame.Type == FrameType.RstStream)
                     State = StreamState.Closed;
-            } else if (State == StreamState.ReservedRemote) {
+                break;
+            case StreamState.ReservedRemote:
                 if (frame.Type == FrameType.RstStream)
                     State = StreamState.Closed;
-            } else if (State == StreamState.HalfClosedLocal) {
+                break;
+            case StreamState.HalfClosedLocal:
                 if (frame.Type == FrameType.RstStream)
                     State = StreamState.Closed;
+                break;
             }
 
             // If data frame, decrease available window
             if (frame.Type == FrameType.Data) {
                 var windowDecrement = ((DataFrame)frame).PayloadLength;
-                flowControlStateManager.DecreaseWindowSize (frame.StreamIdentifier, (uint)windowDecrement);
+                flowControlStateManager.DecreaseWindowSize (frame.StreamIdentifier, windowDecrement);
             }
 
             // Raise the event

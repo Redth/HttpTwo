@@ -1,15 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Collections.Specialized;
+using HttpTwo.Internal;
 
 namespace HttpTwo
 {
-
     public class PriorityFrame : Frame
     {
         public PriorityFrame () : base ()
-        {            
+        {
         }
 
         public PriorityFrame (uint streamIdentifier) : base ()
@@ -37,7 +35,7 @@ namespace HttpTwo
         }
 
         public override byte Flags {
-            get { return (byte)0x0; }                 
+            get { return (byte)0x0; }
         }
 
         public override IEnumerable<byte> Payload {
@@ -53,7 +51,7 @@ namespace HttpTwo
         }
 
         public override void ParsePayload (byte[] payloadData, FrameHeader frameHeader)
-        {           
+        {
             // Get Dependency Stream Id
             // we need to turn the stream id into a uint
             var frameStreamIdData = new byte[4]; 

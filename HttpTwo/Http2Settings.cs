@@ -1,4 +1,4 @@
-﻿using System;
+﻿using HttpTwo.Internal;
 
 namespace HttpTwo
 {
@@ -7,10 +7,6 @@ namespace HttpTwo
         public const uint DefaultWindowSize = 65535;
         public const uint DefaultMaxFrameSize = 16384;
         public const uint DefaultHeaderTableSize = 4096;
-
-        public Http2Settings ()
-        {            
-        }
 
         // 4096 is default (0x1 index)
         public uint HeaderTableSize { get; set; } = DefaultHeaderTableSize;

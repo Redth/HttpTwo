@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
-using System.Threading;
 
-namespace HttpTwo
-{    
+namespace HttpTwo.Internal
+{
     public delegate void FlowControlWindowSizeIncreasedDelegate (uint streamIdentifier, uint increasedByAmount);
 
     public interface IFlowControlManager
@@ -28,7 +26,7 @@ namespace HttpTwo
 
         public event FlowControlWindowSizeIncreasedDelegate FlowControlWindowSizeIncreased;
 
-        Dictionary<uint, uint> windowSizes;
+        readonly Dictionary<uint, uint> windowSizes;
 
         public uint InitialWindowSize { get; set; }
 
@@ -36,7 +34,7 @@ namespace HttpTwo
         {
             if (!windowSizes.ContainsKey (streamIdentifier))
                 windowSizes.Add (streamIdentifier, Http2Settings.DefaultWindowSize);
-            
+
             return windowSizes [streamIdentifier];
         }
 
@@ -47,7 +45,7 @@ namespace HttpTwo
             var newAmount = current - decreaseByAmount;
             if (newAmount < 0)
                 newAmount = 0;
-            
+
             windowSizes [streamIdentifier] = newAmount;
         }
 
@@ -64,4 +62,3 @@ namespace HttpTwo
         }
     }
 }
-
