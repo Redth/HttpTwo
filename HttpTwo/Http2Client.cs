@@ -86,6 +86,8 @@ namespace HttpTwo
                     semaphoreClose.Release ();
             };
 
+            var sentEndOfStream = false;
+
             var allHeaders = new NameValueCollection ();
             allHeaders.Add (":method", method.Method.ToUpperInvariant ());
             allHeaders.Add (":path", uri.PathAndQuery);
@@ -116,11 +118,16 @@ namespace HttpTwo
                 frame.HeaderBlockFragment = new byte[amt];
                 Array.Copy (headerData, i * maxFrameSize, frame.HeaderBlockFragment, 0, amt);
 
+                // If we won't s end 
+                if (data == null && frame is HeadersFrame) {
+                    sentEndOfStream = true;
+                    (frame as HeadersFrame).EndStream = true;
+                }
+
                 await connection.QueueFrame (frame).ConfigureAwait (false);
             }
-
+            
             if (data != null) {
-                var sentEndOfStream = false;
                 var supportsPosLength = true; // Keep track of if we threw exceptions trying pos/len of stream
 
                 // Break stream up into data frames within allowed size
@@ -132,9 +139,12 @@ namespace HttpTwo
                     if (rd <= 0)
                         break;
 
+                    // Make a new data frame with a buffer the size we read
                     var dataFrame = new DataFrame (stream.StreamIdentifer);
-                    dataFrameBuffer.CopyTo (dataFrame.Data, 0);
-
+                    dataFrame.Data = new byte[rd];
+                    // Copy over the data we read
+                    Array.Copy(dataFrameBuffer, 0, dataFrame.Data, 0, rd);
+                    
                     try {
                         // See if the stream supports Length / Position to try and detect EOS
                         // we also want to see if we previously had an exception trying this
@@ -150,12 +160,12 @@ namespace HttpTwo
                     }
 
                     await connection.QueueFrame (dataFrame).ConfigureAwait (false);
-                }
-
-                // Send an empty frame with end of stream flag
-                if (!sentEndOfStream)
-                    await connection.QueueFrame (new DataFrame (stream.StreamIdentifer) { EndStream = true }).ConfigureAwait (false);
+                }   
             }
+
+            // Send an empty frame with end of stream flag
+            if (!sentEndOfStream)
+                await connection.QueueFrame(new DataFrame(stream.StreamIdentifer) { EndStream = true }).ConfigureAwait(false);
 
             if (!await semaphoreClose.WaitAsync (ConnectionSettings.ConnectionTimeout, cancelToken).ConfigureAwait (false))
                 throw new TimeoutException ();
