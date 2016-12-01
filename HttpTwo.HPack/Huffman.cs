@@ -20,12 +20,12 @@ namespace HttpTwo.HPack
         /// <summary>
         /// Huffman Decoder
         /// </summary>
-        public static HuffmanDecoder DECODER = new HuffmanDecoder(HPackUtil.HUFFMAN_CODES, HPackUtil.HUFFMAN_CODE_LENGTHS);
+        public static readonly HuffmanDecoder DECODER = new HuffmanDecoder(HPackUtil.HUFFMAN_CODES, HPackUtil.HUFFMAN_CODE_LENGTHS);
 
         /// <summary>
         /// Huffman Encoder
         /// </summary>
-        public static HuffmanEncoder ENCODER = new HuffmanEncoder(HPackUtil.HUFFMAN_CODES, HPackUtil.HUFFMAN_CODE_LENGTHS);
+        public static readonly HuffmanEncoder ENCODER = new HuffmanEncoder(HPackUtil.HUFFMAN_CODES, HPackUtil.HUFFMAN_CODE_LENGTHS);
 
         private Huffman()
         {
