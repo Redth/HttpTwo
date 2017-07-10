@@ -2,6 +2,7 @@
 using System.Collections.Specialized;
 using System.IO;
 using System.Threading.Tasks;
+using HttpTwo.HPack;
 
 namespace HttpTwo.Internal
 {
@@ -62,12 +63,11 @@ namespace HttpTwo.Internal
             return headerData;
         }
 
-        public static NameValueCollection UnpackHeaders (byte[] data, int maxHeaderSize, int maxHeaderTableSize)
+        public static NameValueCollection UnpackHeaders(Decoder hpackDecoder, byte[] data)
         {
             var headers = new NameValueCollection ();
 
             // Decode Header Block Fragments
-            var hpackDecoder = new HPack.Decoder (maxHeaderSize, maxHeaderTableSize);
             using(var binReader = new BinaryReader (new MemoryStream (data))) {
 
                 hpackDecoder.Decode(binReader, (name, value, sensitive) => 

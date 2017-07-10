@@ -180,14 +180,15 @@ namespace HttpTwo
             if (!tcp.Connected || !tcp.Client.Connected)
                 return false;
 
-            if (!tcp.Client.Poll (1000, SelectMode.SelectRead)
-                || !tcp.Client.Poll (1000, SelectMode.SelectWrite))
+            if (!tcp.Client.Poll (1000, SelectMode.SelectRead) && !tcp.Client.Poll (1000, SelectMode.SelectWrite))
                 return false;
 
             return true;
         }
 
         readonly SemaphoreSlim lockWrite = new SemaphoreSlim (1);
+
+        public HPack.Decoder Decoder { get; set; }
 
         public async Task QueueFrame (IFrame frame)
         {

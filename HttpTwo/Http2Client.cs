@@ -193,9 +193,12 @@ namespace HttpTwo
                 }
             }
 
-            var responseHeaders = Util.UnpackHeaders (rxHeaderData.ToArray (), 
-                connection.Settings.MaxHeaderListSize.HasValue ? (int)connection.Settings.MaxHeaderListSize.Value : 8192, 
-                (int)connection.Settings.HeaderTableSize);
+            if (connection.Decoder == null)
+            {
+                connection.Decoder = new HPack.Decoder(connection.Settings.MaxHeaderListSize.HasValue ? (int)connection.Settings.MaxHeaderListSize.Value : 8192, (int)connection.Settings.HeaderTableSize);
+            }
+
+            var responseHeaders = Util.UnpackHeaders(connection.Decoder, rxHeaderData.ToArray());
 
             var strStatus = "500";
             if (responseHeaders [":status"] != null)
