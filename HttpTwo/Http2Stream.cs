@@ -10,8 +10,6 @@ namespace HttpTwo
         {
             this.flowControlStateManager = flowControlStateManager;
 
-            ReceivedFrames = new List<IFrame> ();
-            SentFrames = new List<IFrame> ();
             StreamIdentifer = streamIdentifier;
             State = StreamState.Idle;
         }
@@ -19,15 +17,10 @@ namespace HttpTwo
         public uint StreamIdentifer { get; private set; }
         public StreamState State { get; private set; }
 
-        public List<IFrame> ReceivedFrames { get; private set; }
-        public List<IFrame> SentFrames { get; private set; }
-
         readonly IFlowControlManager flowControlStateManager;
 
         public void ProcessReceivedFrames (IFrame frame)
-        {   
-            // Add frame to the list of history
-            ReceivedFrames.Add (frame);
+        {
 
             switch (State) {
             case StreamState.Idle:
@@ -82,8 +75,6 @@ namespace HttpTwo
 
         public void ProcessSentFrame (IFrame frame)
         {
-            SentFrames.Add (frame);
-
             switch (State) {
             case StreamState.Idle:
                 if (frame.Type == FrameType.PushPromise)

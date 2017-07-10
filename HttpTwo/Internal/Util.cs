@@ -39,12 +39,11 @@ namespace HttpTwo.Internal
             return BitConverter.ToUInt32 (data, 0);
         }
 
-        public static byte[] PackHeaders (NameValueCollection headers, uint maxHeaderTableSize)
+        public static byte[] PackHeaders(Encoder hpackEncoder, NameValueCollection headers)
         {
             byte[] headerData = new byte[0];
 
             // Header Block Fragments
-            var hpackEncoder = new HPack.Encoder ((int)maxHeaderTableSize);
 
             using (var ms = new MemoryStream ()) {
                 using (var bw = new BinaryWriter (ms)) {

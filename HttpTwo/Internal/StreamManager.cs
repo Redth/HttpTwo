@@ -11,13 +11,14 @@ namespace HttpTwo.Internal
         Task<Http2Stream> Get (uint streamIdentifier);
         Task<Http2Stream> Get ();
         Task Cleanup (uint streamIdentifier);
+        void Reset();
     }
 
     public class StreamManager : IStreamManager
     {
         const uint STREAM_ID_MAX_VALUE = 1073741823;
 
-        uint nextStreamId = 1;
+        uint nextStreamId;
 
         public uint GetNextIdentifier ()
         {
@@ -37,11 +38,7 @@ namespace HttpTwo.Internal
         public StreamManager (IFlowControlManager flowControlManager)
         {
             this.flowControlManager = flowControlManager;
-
-            streams = new Dictionary<uint, Http2Stream> ();
-
-            // Add special stream '0' to act as connection level
-            streams.Add (0, new Http2Stream (this.flowControlManager, 0));
+            Reset();
         }
 
         IFlowControlManager flowControlManager;
@@ -89,6 +86,15 @@ namespace HttpTwo.Internal
                 streams.Remove (streamIdentifier);
 
             lockStreams.Release ();
+        }
+
+        public void Reset()
+        {
+            nextStreamId = 1;
+            streams = new Dictionary<uint, Http2Stream>();
+
+            // Add special stream '0' to act as connection level
+            streams.Add(0, new Http2Stream(this.flowControlManager, 0));
         }
     }
 }

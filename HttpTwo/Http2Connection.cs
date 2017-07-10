@@ -172,7 +172,7 @@ namespace HttpTwo
             clientStream = null;
         }
 
-        bool IsConnected ()
+        public bool IsConnected ()
         {
             if (tcp == null || clientStream == null || tcp.Client == null)
                 return false;
@@ -188,7 +188,32 @@ namespace HttpTwo
 
         readonly SemaphoreSlim lockWrite = new SemaphoreSlim (1);
 
-        public HPack.Decoder Decoder { get; set; }
+        private HPack.Decoder m_decoder;
+        public HPack.Decoder Decoder
+        {
+            get
+            {
+                if (m_decoder == null)
+                {
+                    m_decoder = new HPack.Decoder(Settings.MaxHeaderListSize.HasValue ? (int)Settings.MaxHeaderListSize.Value : 8192, (int)Settings.HeaderTableSize);
+                }
+                return m_decoder;
+            }
+        }
+
+        private HPack.Encoder m_encoder;
+
+        public HPack.Encoder Encoder
+        {
+            get
+            {
+                if (m_encoder == null)
+                {
+                    m_encoder = new HPack.Encoder((int)Settings.HeaderTableSize);
+                }
+                return m_encoder;
+            }
+        }
 
         public async Task QueueFrame (IFrame frame)
         {
