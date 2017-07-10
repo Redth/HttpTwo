@@ -27,7 +27,7 @@ namespace HttpTwo
             }
         }
 
-        public uint StreamDependency { get; set; } = 0;
+        public uint StreamDependency { get; set; }
 
         // type=0x1
         public override FrameType Type {

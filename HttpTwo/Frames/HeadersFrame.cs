@@ -46,7 +46,7 @@ namespace HttpTwo
         public bool EndHeaders { get;set; }
         public bool Priority { get;set; }
         public byte[] HeaderBlockFragment { get; set; }
-        public uint StreamDependency { get; set; } = 0;
+        public uint StreamDependency { get; set; }
 
         public override FrameType Type {
             get { return FrameType.Headers; }

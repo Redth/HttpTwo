@@ -74,7 +74,10 @@ namespace HttpTwo
             }
 
             // Raise the event
-            OnFrameReceived?.Invoke (frame);
+            if (OnFrameReceived != null)
+            {
+                OnFrameReceived.Invoke(frame);
+            }
         }
 
         public void ProcessSentFrame (IFrame frame)
@@ -121,7 +124,10 @@ namespace HttpTwo
             }
 
             // Raise the event
-            OnFrameSent?.Invoke (frame);
+            if (OnFrameSent != null)
+            {
+                OnFrameSent.Invoke(frame);
+            }
         }
         
         public delegate void FrameReceivedDelegate (IFrame frame);
