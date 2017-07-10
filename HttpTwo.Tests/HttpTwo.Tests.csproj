@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
@@ -48,10 +48,6 @@
     <ProjectReference Include="..\HttpTwo\HttpTwo.csproj">
       <Project>{DC2F25D9-75BE-4C67-B41D-84B738A16B9F}</Project>
       <Name>HttpTwo</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\HttpTwo.HPack\HttpTwo.HPack.csproj">
-      <Project>{C75A83BB-7EF1-4CDB-8C52-9E6E3E11341D}</Project>
-      <Name>HttpTwo.HPack</Name>
     </ProjectReference>
   </ItemGroup>
 </Project>

@@ -2,7 +2,7 @@
 using System.Collections.Specialized;
 using System.IO;
 using System.Threading.Tasks;
-using HttpTwo.HPack;
+using hpack;
 
 namespace HttpTwo.Internal
 {
@@ -64,23 +64,35 @@ namespace HttpTwo.Internal
 
         public static NameValueCollection UnpackHeaders(Decoder hpackDecoder, byte[] data)
         {
-            var headers = new NameValueCollection ();
+            var headerListener = new HeaderListener();
 
             // Decode Header Block Fragments
             using(var binReader = new BinaryReader (new MemoryStream (data))) {
 
-                hpackDecoder.Decode(binReader, (name, value, sensitive) => 
-                    headers.Add (
-                        System.Text.Encoding.ASCII.GetString (name), 
-                        System.Text.Encoding.ASCII.GetString (value)));
+                hpackDecoder.Decode(binReader, headerListener);
 
                 hpackDecoder.EndHeaderBlock(); // this must be called to finalize the decoding process.
             }
 
-            return headers;
+            return headerListener.Collection;
         }
     }
+    class HeaderListener: IHeaderListener
+    {
+        NameValueCollection m_collection;
+        public HeaderListener()
+        {
+            m_collection = new NameValueCollection();
+        }
+        public void AddHeader(byte[] name, byte[] value, bool sensitive)
+        {
+            m_collection.Add(
+                        System.Text.Encoding.UTF8.GetString(name),
+                        System.Text.Encoding.UTF8.GetString(value));
+        }
 
+        public NameValueCollection Collection { get { return m_collection;  } }
+    }
     static class ByteArrayExtensions
     {
         public static byte[] EnsureBigEndian (this byte[] src)

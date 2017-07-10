@@ -90,7 +90,7 @@ namespace HttpTwo
 
             List<IFrame> frames = new List<IFrame>();
             var stream = await streamManager.Get ().ConfigureAwait (false);
-            stream.OnFrameReceived += async (frame) =>
+            stream.OnFrameReceived += (frame) =>
             {
                 frames.Add(frame);
                 // Check for an end of stream state

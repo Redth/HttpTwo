@@ -8,6 +8,7 @@ using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
+using hpack;
 using HttpTwo.Internal;
 
 namespace HttpTwo
@@ -188,28 +189,28 @@ namespace HttpTwo
 
         readonly SemaphoreSlim lockWrite = new SemaphoreSlim (1);
 
-        private HPack.Decoder m_decoder;
-        public HPack.Decoder Decoder
+        private Decoder m_decoder;
+        public Decoder Decoder
         {
             get
             {
                 if (m_decoder == null)
                 {
-                    m_decoder = new HPack.Decoder(Settings.MaxHeaderListSize.HasValue ? (int)Settings.MaxHeaderListSize.Value : 8192, (int)Settings.HeaderTableSize);
+                    m_decoder = new Decoder(Settings.MaxHeaderListSize.HasValue ? (int)Settings.MaxHeaderListSize.Value : 8192, (int)Settings.HeaderTableSize);
                 }
                 return m_decoder;
             }
         }
 
-        private HPack.Encoder m_encoder;
+        private Encoder m_encoder;
 
-        public HPack.Encoder Encoder
+        public Encoder Encoder
         {
             get
             {
                 if (m_encoder == null)
                 {
-                    m_encoder = new HPack.Encoder((int)Settings.HeaderTableSize);
+                    m_encoder = new Encoder((int)Settings.HeaderTableSize);
                 }
                 return m_encoder;
             }
