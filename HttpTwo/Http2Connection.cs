@@ -93,19 +93,34 @@ namespace HttpTwo
 
             await tcp.ConnectAsync (ConnectionSettings.Host, (int)ConnectionSettings.Port).ConfigureAwait (false);
 
-            if (ConnectionSettings.UseTls) {
-                sslStream = new SslStream (tcp.GetStream (), false, 
-                    (sender, certificate, chain, sslPolicyErrors) => true);
-                
-                await sslStream.AuthenticateAsClientAsync (
-                    ConnectionSettings.Host, 
-                    ConnectionSettings.Certificates ?? new X509CertificateCollection (), 
-                    System.Security.Authentication.SslProtocols.Tls12, 
-                    false).ConfigureAwait (false);
+            try
+            {
+                if (ConnectionSettings.UseTls)
+                {
+                    sslStream = new SslStream(tcp.GetStream(), false,
+                        (sender, certificate, chain, sslPolicyErrors) => true);
 
-                clientStream = sslStream;
-            } else {
-                clientStream = tcp.GetStream ();
+                    await sslStream.AuthenticateAsClientAsync(
+                        ConnectionSettings.Host,
+                        ConnectionSettings.Certificates ?? new X509CertificateCollection(),
+                        System.Security.Authentication.SslProtocols.Tls12,
+                        false).ConfigureAwait(false);
+
+                    clientStream = sslStream;
+                }
+                else
+                {
+                    clientStream = tcp.GetStream();
+                }
+            }
+            catch
+            {
+                if (!IsConnected())
+                {
+                    tcp.Close();
+                }
+                
+                throw;
             }
 
             // Ensure we have a size for the stream '0'
@@ -330,6 +345,11 @@ namespace HttpTwo
 
                             // Increment our received data counter
                             Interlocked.Add (ref receivedDataCount, frame.PayloadLength);
+                        }
+                        else if (frame.Type == FrameType.GoAway)
+                        {
+                            Disconnect();
+                            return;
                         }
 
                         // Some other frame type, just pass it along to the stream
