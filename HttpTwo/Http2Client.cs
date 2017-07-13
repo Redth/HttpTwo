@@ -281,6 +281,18 @@ namespace HttpTwo
 
         public async Task<bool> Disconnect (TimeSpan timeout)
         {
+            if (connection == null)
+            {
+                return true;
+            }
+
+            if (!connection.IsConnected())
+            {
+                // Force disconnection
+                connection.Disconnect();
+                return true;
+            }
+
             var connectionStream = await streamManager.Get (0).ConfigureAwait (false);
 
             var semaphoreWait = new SemaphoreSlim (0);
