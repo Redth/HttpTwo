@@ -15,17 +15,17 @@ namespace HttpTwo
 {
     public class Http2ConnectionSettings
     {
-        public Http2ConnectionSettings (string url,  X509CertificateCollection certificates = null)
-            : this (new Uri (url), certificates)
+        public Http2ConnectionSettings (string url,  X509CertificateCollection certificates = null, Func<TcpClient, Task<Stream>> tlsStreamCreator = null)
+            : this (new Uri (url), certificates, tlsStreamCreator)
         {
         }
 
-        public Http2ConnectionSettings (Uri uri,  X509CertificateCollection certificates = null)
-            : this (uri.Host, (uint)uri.Port, uri.Scheme == Uri.UriSchemeHttps, certificates)
+        public Http2ConnectionSettings (Uri uri,  X509CertificateCollection certificates = null, Func<TcpClient, Task<Stream>> tlsStreamCreator = null)
+            : this (uri.Host, (uint)uri.Port, uri.Scheme == Uri.UriSchemeHttps, certificates, tlsStreamCreator)
         {
         }
 
-        public Http2ConnectionSettings (string host, uint port = 80, bool useTls = false, X509CertificateCollection certificates = null)
+        public Http2ConnectionSettings (string host, uint port = 80, bool useTls = false, X509CertificateCollection certificates = null, Func<TcpClient, Task<Stream>> tlsStreamCreator = null)
         {
             Host = host;
             Port = port;
@@ -33,6 +33,30 @@ namespace HttpTwo
             Certificates = certificates;
             ConnectionTimeout = TimeSpan.FromSeconds (60);
             DisablePushPromise = false;
+
+            if (useTls)
+            {
+                if (tlsStreamCreator != null)
+                {
+                    m_tlsStreamCreator = tlsStreamCreator;
+                }
+                else
+                {
+                    m_tlsStreamCreator = async tcp =>
+                    {
+                        var sslStream = new SslStream(tcp.GetStream(), false,
+                                    (sender, certificate, chain, sslPolicyErrors) => true);
+
+                        await sslStream.AuthenticateAsClientAsync(
+                            Host,
+                            Certificates ?? new X509CertificateCollection(),
+                            System.Security.Authentication.SslProtocols.Tls12,
+                            false).ConfigureAwait(false);
+                        return sslStream;
+                    };
+                }
+            }
+
         }
 
         public string Host { get; private set; }
@@ -42,6 +66,18 @@ namespace HttpTwo
 
         public TimeSpan ConnectionTimeout { get; set; }
         public bool DisablePushPromise { get; set; }
+
+        private Func<TcpClient, Task<Stream>> m_tlsStreamCreator;
+
+        public async Task<Stream> CreateStream(TcpClient tcpClient)
+        {
+            Stream result = null;
+            if (UseTls)
+            {
+                result = await m_tlsStreamCreator(tcpClient);
+            }
+            return result;
+        }
     }
 
     public class Http2Connection
@@ -74,7 +110,6 @@ namespace HttpTwo
 
         TcpClient tcp;
         Stream clientStream;
-        SslStream sslStream;
 
         long receivedDataCount = 0;
         public uint ReceivedDataCount {
@@ -97,16 +132,7 @@ namespace HttpTwo
             {
                 if (ConnectionSettings.UseTls)
                 {
-                    sslStream = new SslStream(tcp.GetStream(), false,
-                        (sender, certificate, chain, sslPolicyErrors) => true);
-
-                    await sslStream.AuthenticateAsClientAsync(
-                        ConnectionSettings.Host,
-                        ConnectionSettings.Certificates ?? new X509CertificateCollection(),
-                        System.Security.Authentication.SslProtocols.Tls12,
-                        false).ConfigureAwait(false);
-
-                    clientStream = sslStream;
+                    clientStream = await ConnectionSettings.CreateStream(tcp);
                 }
                 else
                 {
@@ -172,11 +198,6 @@ namespace HttpTwo
             try { clientStream.Close (); } catch { }
             try { clientStream.Dispose (); } catch { }
 
-            if (ConnectionSettings.UseTls && sslStream != null) {
-                try { sslStream.Close (); } catch { }
-                try { sslStream.Dispose (); } catch { }
-            }
-
             try { tcp.Client.Shutdown (SocketShutdown.Both); } catch { }
             try { tcp.Client.Dispose (); } catch { }
 
@@ -184,7 +205,6 @@ namespace HttpTwo
             // Analysis restore EmptyGeneralCatchClause
 
             tcp = null;
-            sslStream = null;
             clientStream = null;
         }
 
