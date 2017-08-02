@@ -30,7 +30,7 @@ namespace HttpTwo
 
         public byte[] HeaderBlockFragment { get;set; }
 
-        public uint StreamDependency { get; set; } = 0;
+        public uint StreamDependency { get; set; }
 
         public override FrameType Type {
             get { return FrameType.PushPromise; }

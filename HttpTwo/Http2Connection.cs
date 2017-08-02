@@ -8,28 +8,55 @@ using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
+using hpack;
 using HttpTwo.Internal;
 
 namespace HttpTwo
 {
     public class Http2ConnectionSettings
     {
-        public Http2ConnectionSettings (string url,  X509CertificateCollection certificates = null)
-            : this (new Uri (url), certificates)
+        public Http2ConnectionSettings (string url,  X509CertificateCollection certificates = null, Func<TcpClient, Task<Stream>> tlsStreamCreator = null)
+            : this (new Uri (url), certificates, tlsStreamCreator)
         {
         }
 
-        public Http2ConnectionSettings (Uri uri,  X509CertificateCollection certificates = null)
-            : this (uri.Host, (uint)uri.Port, uri.Scheme == Uri.UriSchemeHttps, certificates)
+        public Http2ConnectionSettings (Uri uri,  X509CertificateCollection certificates = null, Func<TcpClient, Task<Stream>> tlsStreamCreator = null)
+            : this (uri.Host, (uint)uri.Port, uri.Scheme == Uri.UriSchemeHttps, certificates, tlsStreamCreator)
         {
         }
 
-        public Http2ConnectionSettings (string host, uint port = 80, bool useTls = false, X509CertificateCollection certificates = null)
+        public Http2ConnectionSettings (string host, uint port = 80, bool useTls = false, X509CertificateCollection certificates = null, Func<TcpClient, Task<Stream>> tlsStreamCreator = null)
         {
             Host = host;
             Port = port;
             UseTls = useTls;
             Certificates = certificates;
+            ConnectionTimeout = TimeSpan.FromSeconds (60);
+            DisablePushPromise = false;
+
+            if (useTls)
+            {
+                if (tlsStreamCreator != null)
+                {
+                    m_tlsStreamCreator = tlsStreamCreator;
+                }
+                else
+                {
+                    m_tlsStreamCreator = async tcp =>
+                    {
+                        var sslStream = new SslStream(tcp.GetStream(), false,
+                                    (sender, certificate, chain, sslPolicyErrors) => true);
+
+                        await sslStream.AuthenticateAsClientAsync(
+                            Host,
+                            Certificates ?? new X509CertificateCollection(),
+                            System.Security.Authentication.SslProtocols.Tls12,
+                            false).ConfigureAwait(false);
+                        return sslStream;
+                    };
+                }
+            }
+
         }
 
         public string Host { get; private set; }
@@ -37,8 +64,20 @@ namespace HttpTwo
         public bool UseTls { get; private set; }
         public X509CertificateCollection Certificates { get; private set; }
 
-        public TimeSpan ConnectionTimeout { get; set; } = TimeSpan.FromSeconds (60);
-        public bool DisablePushPromise { get; set; } = false;
+        public TimeSpan ConnectionTimeout { get; set; }
+        public bool DisablePushPromise { get; set; }
+
+        private Func<TcpClient, Task<Stream>> m_tlsStreamCreator;
+
+        public async Task<Stream> CreateStream(TcpClient tcpClient)
+        {
+            Stream result = null;
+            if (UseTls)
+            {
+                result = await m_tlsStreamCreator(tcpClient);
+            }
+            return result;
+        }
     }
 
     public class Http2Connection
@@ -71,7 +110,6 @@ namespace HttpTwo
 
         TcpClient tcp;
         Stream clientStream;
-        SslStream sslStream;
 
         long receivedDataCount = 0;
         public uint ReceivedDataCount {
@@ -90,19 +128,25 @@ namespace HttpTwo
 
             await tcp.ConnectAsync (ConnectionSettings.Host, (int)ConnectionSettings.Port).ConfigureAwait (false);
 
-            if (ConnectionSettings.UseTls) {
-                sslStream = new SslStream (tcp.GetStream (), false, 
-                    (sender, certificate, chain, sslPolicyErrors) => true);
+            try
+            {
+                if (ConnectionSettings.UseTls)
+                {
+                    clientStream = await ConnectionSettings.CreateStream(tcp);
+                }
+                else
+                {
+                    clientStream = tcp.GetStream();
+                }
+            }
+            catch
+            {
+                if (!IsConnected())
+                {
+                    tcp.Close();
+                }
                 
-                await sslStream.AuthenticateAsClientAsync (
-                    ConnectionSettings.Host, 
-                    ConnectionSettings.Certificates ?? new X509CertificateCollection (), 
-                    System.Security.Authentication.SslProtocols.Tls12, 
-                    false).ConfigureAwait (false);
-
-                clientStream = sslStream;
-            } else {
-                clientStream = tcp.GetStream ();
+                throw;
             }
 
             // Ensure we have a size for the stream '0'
@@ -128,7 +172,7 @@ namespace HttpTwo
             }, TaskContinuationOptions.OnlyOnFaulted).Forget ();
 
             // Start a thread to handle writing queued frames to the stream
-            var writeTask = Task.Factory.StartNew (write, TaskCreationOptions.LongRunning);
+            var writeTask = Task.Factory.StartNew<Task>(write, TaskCreationOptions.LongRunning);
             writeTask.ContinueWith (t => {
                 // TODO: Handle the error
                 Disconnect ();
@@ -154,11 +198,6 @@ namespace HttpTwo
             try { clientStream.Close (); } catch { }
             try { clientStream.Dispose (); } catch { }
 
-            if (ConnectionSettings.UseTls && sslStream != null) {
-                try { sslStream.Close (); } catch { }
-                try { sslStream.Dispose (); } catch { }
-            }
-
             try { tcp.Client.Shutdown (SocketShutdown.Both); } catch { }
             try { tcp.Client.Dispose (); } catch { }
 
@@ -166,11 +205,10 @@ namespace HttpTwo
             // Analysis restore EmptyGeneralCatchClause
 
             tcp = null;
-            sslStream = null;
             clientStream = null;
         }
 
-        bool IsConnected ()
+        public bool IsConnected ()
         {
             if (tcp == null || clientStream == null || tcp.Client == null)
                 return false;
@@ -178,14 +216,40 @@ namespace HttpTwo
             if (!tcp.Connected || !tcp.Client.Connected)
                 return false;
 
-            if (!tcp.Client.Poll (1000, SelectMode.SelectRead)
-                || !tcp.Client.Poll (1000, SelectMode.SelectWrite))
+            if (!tcp.Client.Poll (1000, SelectMode.SelectRead) && !tcp.Client.Poll (1000, SelectMode.SelectWrite))
                 return false;
 
             return true;
         }
 
         readonly SemaphoreSlim lockWrite = new SemaphoreSlim (1);
+
+        private Decoder m_decoder;
+        public Decoder Decoder
+        {
+            get
+            {
+                if (m_decoder == null)
+                {
+                    m_decoder = new Decoder(Settings.MaxHeaderListSize.HasValue ? (int)Settings.MaxHeaderListSize.Value : 8192, (int)Settings.HeaderTableSize);
+                }
+                return m_decoder;
+            }
+        }
+
+        private Encoder m_encoder;
+
+        public Encoder Encoder
+        {
+            get
+            {
+                if (m_encoder == null)
+                {
+                    m_encoder = new Encoder((int)Settings.HeaderTableSize);
+                }
+                return m_encoder;
+            }
+        }
 
         public async Task QueueFrame (IFrame frame)
         {
@@ -301,6 +365,11 @@ namespace HttpTwo
 
                             // Increment our received data counter
                             Interlocked.Add (ref receivedDataCount, frame.PayloadLength);
+                        }
+                        else if (frame.Type == FrameType.GoAway)
+                        {
+                            Disconnect();
+                            return;
                         }
 
                         // Some other frame type, just pass it along to the stream

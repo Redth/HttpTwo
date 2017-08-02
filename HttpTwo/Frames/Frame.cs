@@ -71,11 +71,11 @@ namespace HttpTwo
 
         public abstract FrameType Type { get; }
 
-        public virtual byte Flags { get; protected set; } = 0x0;
+        public virtual byte Flags { get; protected set; }
 
         public virtual uint StreamIdentifier { get; set; }
 
-        public virtual IEnumerable<byte> Payload { get; }
+        public virtual IEnumerable<byte> Payload { get { return null; } }
 
         uint? payloadLength;
         public uint PayloadLength {

@@ -58,7 +58,10 @@ namespace HttpTwo.Internal
             windowSizes [streamIdentifier] = newAmount;
 
             // Fire the event
-            FlowControlWindowSizeIncreased?.Invoke (streamIdentifier, increaseByAmount);
+            if (FlowControlWindowSizeIncreased != null)
+            {
+                FlowControlWindowSizeIncreased.Invoke(streamIdentifier, increaseByAmount);
+            }
         }
     }
 }

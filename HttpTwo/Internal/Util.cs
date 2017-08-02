@@ -2,6 +2,7 @@
 using System.Collections.Specialized;
 using System.IO;
 using System.Threading.Tasks;
+using hpack;
 
 namespace HttpTwo.Internal
 {
@@ -38,12 +39,11 @@ namespace HttpTwo.Internal
             return BitConverter.ToUInt32 (data, 0);
         }
 
-        public static byte[] PackHeaders (NameValueCollection headers, uint maxHeaderTableSize)
+        public static byte[] PackHeaders(Encoder hpackEncoder, NameValueCollection headers)
         {
             byte[] headerData = new byte[0];
 
             // Header Block Fragments
-            var hpackEncoder = new HPack.Encoder ((int)maxHeaderTableSize);
 
             using (var ms = new MemoryStream ()) {
                 using (var bw = new BinaryWriter (ms)) {
@@ -62,26 +62,37 @@ namespace HttpTwo.Internal
             return headerData;
         }
 
-        public static NameValueCollection UnpackHeaders (byte[] data, int maxHeaderSize, int maxHeaderTableSize)
+        public static NameValueCollection UnpackHeaders(Decoder hpackDecoder, byte[] data)
         {
-            var headers = new NameValueCollection ();
+            var headerListener = new HeaderListener();
 
             // Decode Header Block Fragments
-            var hpackDecoder = new HPack.Decoder (maxHeaderSize, maxHeaderTableSize);
             using(var binReader = new BinaryReader (new MemoryStream (data))) {
 
-                hpackDecoder.Decode(binReader, (name, value, sensitive) => 
-                    headers.Add (
-                        System.Text.Encoding.ASCII.GetString (name), 
-                        System.Text.Encoding.ASCII.GetString (value)));
+                hpackDecoder.Decode(binReader, headerListener);
 
                 hpackDecoder.EndHeaderBlock(); // this must be called to finalize the decoding process.
             }
 
-            return headers;
+            return headerListener.Collection;
         }
     }
+    class HeaderListener: IHeaderListener
+    {
+        NameValueCollection m_collection;
+        public HeaderListener()
+        {
+            m_collection = new NameValueCollection();
+        }
+        public void AddHeader(byte[] name, byte[] value, bool sensitive)
+        {
+            m_collection.Add(
+                        System.Text.Encoding.UTF8.GetString(name),
+                        System.Text.Encoding.UTF8.GetString(value));
+        }
 
+        public NameValueCollection Collection { get { return m_collection;  } }
+    }
     static class ByteArrayExtensions
     {
         public static byte[] EnsureBigEndian (this byte[] src)

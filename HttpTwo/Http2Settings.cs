@@ -8,20 +8,28 @@ namespace HttpTwo
         public const uint DefaultMaxFrameSize = 16384;
         public const uint DefaultHeaderTableSize = 4096;
 
+        public Http2Settings()
+        {
+            InitialWindowSize = DefaultWindowSize;
+            MaxFrameSize = DefaultMaxFrameSize;
+            HeaderTableSize = DefaultHeaderTableSize;
+            EnablePush = true;
+        }
+
         // 4096 is default (0x1 index)
-        public uint HeaderTableSize { get; set; } = DefaultHeaderTableSize;
+        public uint HeaderTableSize { get; set; }
 
         // 1 is default (true) (0x2 index)
-        public bool EnablePush { get;set; } = true;
+        public bool EnablePush { get;set; }
 
         // no limit initially (0x3 index)
-        public uint? MaxConcurrentStreams { get;set; }
+        public uint? MaxConcurrentStreams { get; set; }
 
         // 65,535 is default (0x4 index)
-        public uint InitialWindowSize { get;set; } = DefaultWindowSize;
+        public uint InitialWindowSize { get;set; }
 
         // 16,384 is default (0x5 index)
-        public uint MaxFrameSize { get;set; } = DefaultMaxFrameSize;
+        public uint MaxFrameSize { get;set; }
 
         // no limit initially (0x6 index)
         public uint? MaxHeaderListSize { get;set; }

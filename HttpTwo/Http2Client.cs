@@ -14,7 +14,7 @@ namespace HttpTwo
 {
     public class Http2Client
     {
-        readonly Http2Connection connection;
+        Http2Connection connection;
         readonly IStreamManager streamManager;
         IFlowControlManager flowControlManager;
 
@@ -33,8 +33,6 @@ namespace HttpTwo
             this.flowControlManager = flowControlManager ?? new FlowControlManager ();
             this.streamManager = streamManager ?? new StreamManager (this.flowControlManager);
             this.ConnectionSettings = connectionSettings;
-
-            connection = new Http2Connection (ConnectionSettings, this.streamManager, this.flowControlManager);
         }
 
         public Http2ConnectionSettings ConnectionSettings { get; private set; }
@@ -42,9 +40,21 @@ namespace HttpTwo
         public IStreamManager StreamManager { get { return streamManager; } }
         public IFlowControlManager FlowControlManager { get { return flowControlManager; } }
 
-        public async Task Connect ()
+        public async Task Connect()
         {
-            await connection.Connect ().ConfigureAwait (false);
+            if (connection != null && !connection.IsConnected())
+            {
+                connection.Disconnect();
+                connection = null;
+            }
+
+            if (connection == null)
+            {
+                streamManager.Reset();
+                connection = new Http2Connection(ConnectionSettings, this.streamManager, this.flowControlManager);
+                await connection.Connect().ConfigureAwait(false);
+            }
+
         }
 
         public async Task<Http2Response> Post (Uri uri, NameValueCollection headers = null, byte[] data = null)
@@ -76,14 +86,19 @@ namespace HttpTwo
         {
             var semaphoreClose = new SemaphoreSlim(0);
 
-            await connection.Connect ().ConfigureAwait (false);
+            await Connect();
 
+            List<IFrame> frames = new List<IFrame>();
             var stream = await streamManager.Get ().ConfigureAwait (false);
-            stream.OnFrameReceived += async (frame) =>
+            stream.OnFrameReceived += (frame) =>
             {
+                frames.Add(frame);
                 // Check for an end of stream state
                 if (stream.State == StreamState.HalfClosedRemote || stream.State == StreamState.Closed)
-                    semaphoreClose.Release ();
+                {
+                    semaphoreClose.Release();
+                }
+
             };
 
             var sentEndOfStream = false;
@@ -96,7 +111,7 @@ namespace HttpTwo
             if (headers != null && headers.Count > 0)
                 allHeaders.Add (headers);
 
-            var headerData = Util.PackHeaders (allHeaders, connection.Settings.HeaderTableSize);
+            var headerData = Util.PackHeaders (connection.Encoder, allHeaders);
 
             var numFrames = (int)Math.Ceiling ((double)headerData.Length / (double)connection.Settings.MaxFrameSize);
 
@@ -173,7 +188,8 @@ namespace HttpTwo
             var responseData = new List<byte> ();
             var rxHeaderData = new List<byte> ();
 
-            foreach (var f in stream.ReceivedFrames) {
+            foreach (var f in frames)
+            {
                 if (f.Type == FrameType.Headers || f.Type == FrameType.Continuation) {
                     // Get the header data and add it to our buffer
                     var fch = (IFrameContainsHeaders)f;
@@ -193,9 +209,7 @@ namespace HttpTwo
                 }
             }
 
-            var responseHeaders = Util.UnpackHeaders (rxHeaderData.ToArray (), 
-                connection.Settings.MaxHeaderListSize.HasValue ? (int)connection.Settings.MaxHeaderListSize.Value : 8192, 
-                (int)connection.Settings.HeaderTableSize);
+            var responseHeaders = Util.UnpackHeaders(connection.Decoder, rxHeaderData.ToArray());
 
             var strStatus = "500";
             if (responseHeaders [":status"] != null)
@@ -223,8 +237,8 @@ namespace HttpTwo
         {
             if (opaqueData == null || opaqueData.Length <= 0)
                 throw new ArgumentNullException ("opaqueData");
-            
-            await connection.Connect ().ConfigureAwait (false);
+
+            await Connect();
 
             var semaphoreWait = new SemaphoreSlim (0);
             var opaqueDataMatch = false;
@@ -267,6 +281,18 @@ namespace HttpTwo
 
         public async Task<bool> Disconnect (TimeSpan timeout)
         {
+            if (connection == null)
+            {
+                return true;
+            }
+
+            if (!connection.IsConnected())
+            {
+                // Force disconnection
+                connection.Disconnect();
+                return true;
+            }
+
             var connectionStream = await streamManager.Get (0).ConfigureAwait (false);
 
             var semaphoreWait = new SemaphoreSlim (0);
