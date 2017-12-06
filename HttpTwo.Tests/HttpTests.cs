@@ -75,7 +75,6 @@ namespace HttpTwo.Tests
 
                 Assert.IsNotNull(data);
                 Assert.IsTrue(data.Contains("Hello World"));
-                await Task.Delay(1000); // hot fixed Decoder index out of range
             }
         }
 

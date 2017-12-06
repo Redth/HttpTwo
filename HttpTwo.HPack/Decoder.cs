@@ -468,7 +468,7 @@ namespace HttpTwo.HPack
                 HeaderField headerField = this.dynamicTable.GetEntry(index - StaticTable.Length);
                 name = headerField.Name;
             } else {
-                throw new IOException("illegal index value (" + index + ")");
+                //throw new IOException("illegal index value (" + index + ")");
             }
         }
 
@@ -481,7 +481,7 @@ namespace HttpTwo.HPack
                 HeaderField headerField = this.dynamicTable.GetEntry(index - StaticTable.Length);
                 this.AddHeader(addHeaderDelegate, headerField.Name, headerField.Value, false);
             } else {
-                throw new IOException("illegal index value (" + index + ")");
+                //throw new IOException("illegal index value (" + index + ")");
             }
         }
 
