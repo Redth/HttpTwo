@@ -178,8 +178,13 @@ namespace HttpTwo
             if (!tcp.Connected || !tcp.Client.Connected)
                 return false;
 
-            if (!tcp.Client.Poll (1000, SelectMode.SelectRead)
-                || !tcp.Client.Poll (1000, SelectMode.SelectWrite))
+            var canRead = tcp.Client.Poll(1000, SelectMode.SelectRead);
+            var canWrite = tcp.Client.Poll(1000, SelectMode.SelectWrite);
+
+            if (!canRead && !canWrite)
+                return false;
+
+            if (canRead && tcp.Client.Available == 0)
                 return false;
 
             return true;
