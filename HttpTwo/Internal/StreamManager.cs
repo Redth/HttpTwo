@@ -38,13 +38,14 @@ namespace HttpTwo.Internal
         {
             this.flowControlManager = flowControlManager;
 
-            streams = new Dictionary<uint, Http2Stream> ();
-
-            // Add special stream '0' to act as connection level
-            streams.Add (0, new Http2Stream (this.flowControlManager, 0));
+            streams = new Dictionary<uint, Http2Stream>
+            {
+                // Add special stream '0' to act as connection level
+                { 0, new Http2Stream(this.flowControlManager, 0) }
+            };
         }
 
-        IFlowControlManager flowControlManager;
+        readonly IFlowControlManager flowControlManager;
 
         Dictionary<uint, Http2Stream> streams;
 

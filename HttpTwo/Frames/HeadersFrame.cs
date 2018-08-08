@@ -22,21 +22,23 @@ namespace HttpTwo
         }
 
         ushort padLength = 0;
-        public ushort PadLength { 
-            get { return padLength; }
+        public ushort PadLength
+        {
+            get => padLength;
             set {
                 if (value > 255)
-                    throw new ArgumentOutOfRangeException ("value", "Must be less than or equal to 255");
+                    throw new ArgumentOutOfRangeException(nameof(value), "Must be less than or equal to 255");
                 padLength = value;
             }
         }
 
         ushort weight = 0;
-        public ushort Weight { 
-            get { return weight; }
+        public ushort Weight
+        {
+            get => weight;
             set {
                 if (value > 255)
-                    throw new ArgumentOutOfRangeException ("value", "Must be less than or equal to 255");
+                    throw new ArgumentOutOfRangeException(nameof(value), "Must be less than or equal to 255");
                 weight = value;
             }
         }
@@ -48,16 +50,14 @@ namespace HttpTwo
         public byte[] HeaderBlockFragment { get; set; }
         public uint StreamDependency { get; set; } = 0;
 
-        public override FrameType Type {
-            get { return FrameType.Headers; }
-        }
+        public override FrameType Type => FrameType.Headers;
 
         public override byte Flags {
-            get { 
-                byte endStream = EndStream ? (byte)0x1 : (byte)0x0;
-                byte padded = Padded ? (byte)0x8 : (byte)0x0;
-                byte endHeaders = EndHeaders ? (byte)0x4 : (byte)0x0;
-                byte priority = Priority ? (byte)0x20 : (byte)0x0;
+            get {
+                var endStream = EndStream ? (byte)0x1 : (byte)0x0;
+                var padded = Padded ? (byte)0x8 : (byte)0x0;
+                var endHeaders = EndHeaders ? (byte)0x4 : (byte)0x0;
+                var priority = Priority ? (byte)0x20 : (byte)0x0;
 
                 return (byte)(endStream | padded | endHeaders | priority);
             }
@@ -68,7 +68,7 @@ namespace HttpTwo
                 var data = new List<byte> ();
 
                 if (Padded) {
-                    // Add the padding length 
+                    // Add the padding length
                     data.Add ((byte)padLength);
                 }
 
@@ -86,7 +86,7 @@ namespace HttpTwo
                     data.AddRange (HeaderBlockFragment);
 
                 // Add our padding
-                for (int i = 0; i < padLength; i++)
+                for (var i = 0; i < padLength; i++)
                     data.Add (0x0);
 
                 return data.ToArray ();
@@ -113,7 +113,7 @@ namespace HttpTwo
             if (Priority) {
                 // Get Dependency Stream Id
                 // we need to turn the stream id into a uint
-                var frameStreamIdData = new byte[4]; 
+                var frameStreamIdData = new byte[4];
                 Array.Copy (payloadData, index, frameStreamIdData, 0, 4);
                 StreamDependency = Util.ConvertFromUInt31 (frameStreamIdData.EnsureBigEndian ());
 
@@ -136,10 +136,8 @@ namespace HttpTwo
             // Don't care about padding
         }
 
-        public override string ToString ()
-        {
-            return string.Format ("[Frame: HEADERS, Id={0}, EndStream={1}, EndHeaders={2}, Priority={3}, Weight={4}, Padded={5}, PadLength={6}, HeaderBlockFragmentLength={7}]", 
-                StreamIdentifier, 
+        public override string ToString() => string.Format("[Frame: HEADERS, Id={0}, EndStream={1}, EndHeaders={2}, Priority={3}, Weight={4}, Padded={5}, PadLength={6}, HeaderBlockFragmentLength={7}]",
+                StreamIdentifier,
                 IsEndStream,
                 EndHeaders,
                 Priority,
@@ -147,6 +145,5 @@ namespace HttpTwo
                 Padded,
                 PadLength,
                 HeaderBlockFragment.Length);
-        }
     }
 }

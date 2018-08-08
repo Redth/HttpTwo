@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using HttpTwo.Internal;
 
@@ -8,9 +8,7 @@ namespace HttpTwo
     {
         public uint WindowSizeIncrement { get;set; }
 
-        public override FrameType Type {
-            get { return FrameType.WindowUpdate; }
-        }
+        public override FrameType Type => FrameType.WindowUpdate;
 
         public override IEnumerable<byte> Payload {
             get {
@@ -26,16 +24,13 @@ namespace HttpTwo
         public override void ParsePayload (byte[] payloadData, FrameHeader frameHeader)
         {
             // we need to turn the stream id into a uint
-            var windowSizeIncrData = new byte[4]; 
+            var windowSizeIncrData = new byte[4];
             Array.Copy (payloadData, 0, windowSizeIncrData, 0, 4);
             WindowSizeIncrement = Util.ConvertFromUInt31 (windowSizeIncrData.EnsureBigEndian ());
         }
 
-        public override string ToString ()
-        {
-            return string.Format ("[Frame: WINDOW_UPDATE, Id={0}, WindowSizeIncrement={1}]", 
-                StreamIdentifier, 
+        public override string ToString() => string.Format("[Frame: WINDOW_UPDATE, Id={0}, WindowSizeIncrement={1}]",
+                StreamIdentifier,
                 WindowSizeIncrement);
-        }
     }
 }

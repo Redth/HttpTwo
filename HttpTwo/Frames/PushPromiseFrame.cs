@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using HttpTwo.Internal;
 
@@ -16,11 +16,13 @@ namespace HttpTwo
         }
 
         ushort padLength = 0;
-        public ushort PadLength { 
-            get { return padLength; }
-            set {
+        public ushort PadLength
+        {
+            get => padLength;
+            set
+            {
                 if (value > 255)
-                    throw new ArgumentOutOfRangeException ("value", "Must be less than or equal to 255");
+                    throw new ArgumentOutOfRangeException(nameof(value), "Must be less than or equal to 255");
                 padLength = value;
             }
         }
@@ -32,14 +34,12 @@ namespace HttpTwo
 
         public uint StreamDependency { get; set; } = 0;
 
-        public override FrameType Type {
-            get { return FrameType.PushPromise; }
-        }
+        public override FrameType Type => FrameType.PushPromise;
 
         public override byte Flags {
-            get { 
-                byte padded = Padded ? (byte)0x8 : (byte)0x0;
-                byte endHeaders = EndHeaders ? (byte)0x4 : (byte)0x0;
+            get {
+                var padded = Padded ? (byte)0x8 : (byte)0x0;
+                var endHeaders = EndHeaders ? (byte)0x4 : (byte)0x0;
 
                 return (byte)(padded | endHeaders);
             }
@@ -50,7 +50,7 @@ namespace HttpTwo
                 var data = new List<byte> ();
 
                 if (Padded) {
-                    // Add the padding length 
+                    // Add the padding length
                     data.Add ((byte)padLength);
                 }
 
@@ -61,7 +61,7 @@ namespace HttpTwo
                     data.AddRange (HeaderBlockFragment);
 
                 // Add our padding
-                for (int i = 0; i < padLength; i++)
+                for (var i = 0; i < padLength; i++)
                     data.Add (0x0);
 
                 return data.ToArray ();
@@ -85,7 +85,7 @@ namespace HttpTwo
 
             // Get Dependency Stream Id
             // we need to turn the stream id into a uint
-            var frameStreamIdData = new byte[4]; 
+            var frameStreamIdData = new byte[4];
             Array.Copy (payloadData, index, frameStreamIdData, 0, 4);
             StreamDependency = Util.ConvertFromUInt31 (frameStreamIdData.EnsureBigEndian ());
 
@@ -103,16 +103,13 @@ namespace HttpTwo
             // Don't care about padding
         }
 
-        public override string ToString ()
-        {
-            return string.Format ("[Frame: PUSH_PROMISE, Id={0}, EndStream={1}, EndHeaders={2}, StreamDependency={3}, Padded={4}, PadLength={5}, HeaderBlockFragmentLength={6}]", 
-                StreamIdentifier, 
+        public override string ToString() => string.Format("[Frame: PUSH_PROMISE, Id={0}, EndStream={1}, EndHeaders={2}, StreamDependency={3}, Padded={4}, PadLength={5}, HeaderBlockFragmentLength={6}]",
+                StreamIdentifier,
                 IsEndStream,
                 EndHeaders,
                 StreamDependency,
                 Padded,
                 PadLength,
                 HeaderBlockFragment.Length);
-        }
     }
 }

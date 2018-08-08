@@ -15,25 +15,25 @@ namespace HttpTwo
         }
 
         uint padLength = 0;
-        public uint PadLength { 
-            get { return padLength; }
-            set {
+        public uint PadLength
+        {
+            get => padLength;
+            set
+            {
                 if (value > 255)
-                    throw new ArgumentOutOfRangeException ("value", "Must be less than or equal to 255");
+                    throw new ArgumentOutOfRangeException("value", "Must be less than or equal to 255");
                 padLength = value;
             }
         }
         public bool Padded { get; set; }
         public bool EndStream { get; set; }
 
-        public override FrameType Type {
-            get { return FrameType.Data; }
-        }
+        public override FrameType Type => FrameType.Data;
 
         public override byte Flags {
-            get { 
-                byte endStream = EndStream ? (byte)0x1 : (byte)0x0;
-                byte padded = Padded ? (byte)0x8 : (byte)0x0;
+            get {
+                var endStream = EndStream ? (byte)0x1 : (byte)0x0;
+                var padded = Padded ? (byte)0x8 : (byte)0x0;
 
                 return (byte)(endStream | padded);
             }
@@ -54,7 +54,7 @@ namespace HttpTwo
                     data.AddRange (Data);
 
                 // Add our padding
-                for (int i = 0; i < padLength; i++)
+                for (var i = 0; i < padLength; i++)
                     data.Add (0x0);
 
                 return data;
@@ -78,15 +78,12 @@ namespace HttpTwo
             Array.Copy (payloadData, index, Data, 0, Data.Length);
         }
 
-        public override string ToString ()
-        {
-            return string.Format ("[Frame: DATA, Id={0}, EndStream={1}, Padded={2}, PadLength={3}, PayloadLength={4}]", 
+        public override string ToString() => string.Format("[Frame: DATA, Id={0}, EndStream={1}, Padded={2}, PadLength={3}, PayloadLength={4}]",
                 StreamIdentifier,
                 IsEndStream,
                 Padded,
                 PadLength,
                 PayloadLength);
-        }
     }
-    
+
 }

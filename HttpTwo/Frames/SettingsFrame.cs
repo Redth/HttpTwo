@@ -8,24 +8,18 @@ namespace HttpTwo
     {
         public bool Ack { get; set; }
 
-        public override FrameType Type {
-            get { return FrameType.Settings; }
-        }
+        public override FrameType Type => FrameType.Settings;
 
-        public override byte Flags {
-            get { return Ack ? (byte)0x1 : (byte)0x0; }
-        }
+        public override byte Flags => Ack ? (byte)0x1 : (byte)0x0;
 
-        public override uint StreamIdentifier {
-            get { return 0x0; }
-        }
+        public override uint StreamIdentifier => 0x0;
 
         public uint? HeaderTableSize { get; set; } // 4096 is default (0x1)
         public bool? EnablePush { get;set; } // 1 or 0 (0x2)
         public uint? MaxConcurrentStreams { get;set; } // (0x3)
-        public uint? InitialWindowSize { get;set; } // (0x4) 
+        public uint? InitialWindowSize { get;set; } // (0x4)
         public uint? MaxFrameSize { get;set; } // (0x5)
-        public uint? MaxHeaderListSize { get;set; } // (0x6) 
+        public uint? MaxHeaderListSize { get;set; } // (0x6)
 
         public override IEnumerable<byte> Payload {
             get {
@@ -69,8 +63,8 @@ namespace HttpTwo
         {
             Ack = (frameHeader.Flags & 0x1) == 0x1;
 
-            for (int i = 0; i < payloadData.Length; i+=6) {
-                
+            for (var i = 0; i < payloadData.Length; i+=6) {
+
                 var value = BitConverter.ToUInt32 (payloadData, i + 2);
 
                 switch (value) {
@@ -96,17 +90,14 @@ namespace HttpTwo
             }
         }
 
-        public override string ToString ()
-        {
-            return string.Format ("[Frame: SETTINGS, Id={0}, Ack={1}, HeaderTableSize={2}, EnablePush={3}, MaxConcurrentStreams={4}, InitialWindowSize={5}, MaxFrameSize={6}, MaxHeaderListSize={7}]", 
-                StreamIdentifier, 
-                Ack, 
+        public override string ToString() => string.Format("[Frame: SETTINGS, Id={0}, Ack={1}, HeaderTableSize={2}, EnablePush={3}, MaxConcurrentStreams={4}, InitialWindowSize={5}, MaxFrameSize={6}, MaxHeaderListSize={7}]",
+                StreamIdentifier,
+                Ack,
                 HeaderTableSize,
                 EnablePush,
                 MaxConcurrentStreams,
                 InitialWindowSize,
-                MaxFrameSize, 
+                MaxFrameSize,
                 MaxHeaderListSize);
-        }
     }
 }

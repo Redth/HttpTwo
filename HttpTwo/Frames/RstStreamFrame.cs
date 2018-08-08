@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 
 namespace HttpTwo
 {
@@ -15,16 +15,12 @@ namespace HttpTwo
 
         public ErrorCode ErrorCode { get;set; }
 
-        public override FrameType Type {
-            get { return FrameType.RstStream; }
-        }
+        public override FrameType Type => FrameType.RstStream;
 
-        public override byte Flags {
-            get { return (byte)0x0; }
-        }
-       
+        public override byte Flags => (byte)0x0;
+
         public override IEnumerable<byte> Payload {
-            get { 
+            get {
                 var errorCode = (byte)((uint)ErrorCode);
                 return new [] { errorCode };
             }
@@ -38,12 +34,9 @@ namespace HttpTwo
                 ErrorCode = ErrorCode.NoError;
         }
 
-        public override string ToString ()
-        {
-            return string.Format ("[Frame: RST_STREAM, Id={0}, ErrorCode={1}]", 
-                StreamIdentifier, 
+        public override string ToString() => string.Format("[Frame: RST_STREAM, Id={0}, ErrorCode={1}]",
+                StreamIdentifier,
                 ErrorCode);
-        }
     }
 
     public enum ErrorCode
@@ -66,10 +59,10 @@ namespace HttpTwo
         /// <summary>
         /// The endpoint detected that its peer violated the flow-control protocol.
         /// </summary>
-        FlowControlError = 0x3, 
-            
+        FlowControlError = 0x3,
+
         /// <summary>
-        /// The endpoint sent a SETTINGS frame but did not receive a response in a timely manner. 
+        /// The endpoint sent a SETTINGS frame but did not receive a response in a timely manner.
         /// </summary>
         SettingsTimeout = 0x4,
 
@@ -77,16 +70,16 @@ namespace HttpTwo
         /// The endpoint received a frame after a stream was half-closed.
         /// </summary>
         StreamClosed = 0x5,
-            
+
         /// <summary>
         /// The endpoint received a frame with an invalid size.
         /// </summary>
         FrameSizeError = 0x6,
-            
+
         /// <summary>
         /// The endpoint refused the stream prior to performing any application processing
         /// </summary>
-        RefusedStream = 0x7, 
+        RefusedStream = 0x7,
 
         /// <summary>
         /// Used by the endpoint to indicate that the stream is no longer needed.

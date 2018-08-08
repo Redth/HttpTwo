@@ -1,4 +1,4 @@
-﻿using Xunit;
+using Xunit;
 using System;
 using System.Net.Http;
 using System.Collections.Specialized;
@@ -15,13 +15,13 @@ namespace HttpTwo.Tests
 
         public HttpTests ()
         {
-            // Setup logger 
+            // Setup logger
             Log.Logger = new ConsoleLogger { Level = LogLevel.Info };
 
             if (UseInternalHttpRunner) {
                 node = new NodeHttp2Runner ();
                 //node.LogHandler = Console.WriteLine;
-            
+
                 node.StartServer ();
                 // Wait for the server to initialize
                 Thread.Sleep (2000);
@@ -29,7 +29,7 @@ namespace HttpTwo.Tests
         }
 
         public void Dispose ()
-        {     
+        {
             if (UseInternalHttpRunner)
                 node.StopServer ();
         }
@@ -64,7 +64,7 @@ namespace HttpTwo.Tests
             var http2MsgHandler = new Http2MessageHandler ();
             var http = new HttpClient (http2MsgHandler);
 
-            for (int i = 0; i < 3; i++) {
+            for (var i = 0; i < 3; i++) {
                 var data = await http.GetStringAsync ("http://localhost:8999/index.html");
 
                 Assert.NotEmpty (data);
@@ -113,7 +113,7 @@ namespace HttpTwo.Tests
 
             // Generate some gibberish custom headers
             var headers = new NameValueCollection ();
-            for (int i = 0; i < 1000; i++)
+            for (var i = 0; i < 1000; i++)
                 headers.Add ("custom-" + i, "HEADER-VALUE-" + i);
 
             var response = await http.Send (uri, HttpMethod.Get, headers, new byte[0]);

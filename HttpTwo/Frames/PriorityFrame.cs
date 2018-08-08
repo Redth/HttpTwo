@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using HttpTwo.Internal;
 
@@ -16,13 +16,13 @@ namespace HttpTwo
         }
 
         ushort weight = 0;
-        public ushort Weight { 
-            get { 
-                return weight;
-            }
-            set {
+        public ushort Weight
+        {
+            get => weight;
+            set
+            {
                 if (value > 255)
-                    throw new ArgumentOutOfRangeException ("value", "Must be less than or equal to 255");
+                    throw new ArgumentOutOfRangeException("value", "Must be less than or equal to 255");
                 weight = value;
             }
         }
@@ -30,13 +30,9 @@ namespace HttpTwo
         public uint StreamDependency { get; set; } = 0;
 
         // type=0x1
-        public override FrameType Type {
-            get { return FrameType.Priority; }
-        }
+        public override FrameType Type => FrameType.Priority;
 
-        public override byte Flags {
-            get { return (byte)0x0; }
-        }
+        public override byte Flags => (byte)0x0;
 
         public override IEnumerable<byte> Payload {
             get {
@@ -54,7 +50,7 @@ namespace HttpTwo
         {
             // Get Dependency Stream Id
             // we need to turn the stream id into a uint
-            var frameStreamIdData = new byte[4]; 
+            var frameStreamIdData = new byte[4];
             Array.Copy (payloadData, 0, frameStreamIdData, 0, 4);
             StreamDependency = Util.ConvertFromUInt31 (frameStreamIdData.EnsureBigEndian ());
 
@@ -62,12 +58,9 @@ namespace HttpTwo
             weight = (ushort)payloadData [4];
         }
 
-        public override string ToString ()
-        {
-            return string.Format ("[Frame: PRIORITY, Id={0}, StreamDependency={1}, Weight={2}]", 
+        public override string ToString() => string.Format("[Frame: PRIORITY, Id={0}, StreamDependency={1}, Weight={2}]",
                 StreamIdentifier,
                 StreamDependency,
                 Weight);
-        }
     }
 }

@@ -18,19 +18,11 @@ namespace HttpTwo
         public byte[] HeaderBlockFragment { get;set; }
 
         // type=0x1
-        public override FrameType Type {
-            get { return FrameType.Continuation; }
-        }
+        public override FrameType Type => FrameType.Continuation;
 
-        public override byte Flags {
-            get { return EndHeaders ? (byte)0x4 : (byte)0x0; }
-        }
+        public override byte Flags => EndHeaders ? (byte)0x4 : (byte)0x0;
 
-        public override IEnumerable<byte> Payload {
-            get {
-                return HeaderBlockFragment ?? new byte[0];
-            }
-        }
+        public override IEnumerable<byte> Payload => HeaderBlockFragment ?? new byte[0];
 
         public override void ParsePayload (byte[] payloadData, FrameHeader frameHeader)
         {
@@ -40,13 +32,10 @@ namespace HttpTwo
             payloadData.CopyTo (HeaderBlockFragment, 0);
         }
 
-        public override string ToString ()
-        {
-            return string.Format ("[Frame: CONTINUATION, Id={0}, EndStream={1}, EndHeaders={2}, HeaderBlockFragmentLength={3}]", 
-                StreamIdentifier, 
-                IsEndStream, 
-                EndHeaders, 
+        public override string ToString() => string.Format("[Frame: CONTINUATION, Id={0}, EndStream={1}, EndHeaders={2}, HeaderBlockFragmentLength={3}]",
+                StreamIdentifier,
+                IsEndStream,
+                EndHeaders,
                 HeaderBlockFragment.Length);
-        }
     }
 }

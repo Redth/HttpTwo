@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -14,17 +14,17 @@ namespace HttpTwo
 {
     public class Http2ConnectionSettings
     {
-        public Http2ConnectionSettings (string url,  X509CertificateCollection certificates = null)
-            : this (new Uri (url), certificates)
+        public Http2ConnectionSettings(string url, X509CertificateCollection certificates = null)
+            : this(new Uri(url), certificates)
         {
         }
 
-        public Http2ConnectionSettings (Uri uri,  X509CertificateCollection certificates = null)
-            : this (uri.Host, (uint)uri.Port, uri.Scheme == Uri.UriSchemeHttps, certificates)
+        public Http2ConnectionSettings(Uri uri, X509CertificateCollection certificates = null)
+            : this(uri.Host, (uint)uri.Port, uri.Scheme == Uri.UriSchemeHttps, certificates)
         {
         }
 
-        public Http2ConnectionSettings (string host, uint port = 80, bool useTls = false, X509CertificateCollection certificates = null)
+        public Http2ConnectionSettings(string host, uint port = 80, bool useTls = false, X509CertificateCollection certificates = null)
         {
             Host = host;
             Port = port;
@@ -37,7 +37,7 @@ namespace HttpTwo
         public bool UseTls { get; private set; }
         public X509CertificateCollection Certificates { get; private set; }
 
-        public TimeSpan ConnectionTimeout { get; set; } = TimeSpan.FromSeconds (60);
+        public TimeSpan ConnectionTimeout { get; set; } = TimeSpan.FromSeconds(60);
         public bool DisablePushPromise { get; set; } = false;
     }
 
@@ -45,21 +45,21 @@ namespace HttpTwo
     {
         public const string ConnectionPreface = "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n";
 
-        static Http2Connection ()
+        static Http2Connection()
         {
-            ServicePointManager.ServerCertificateValidationCallback += 
+            ServicePointManager.ServerCertificateValidationCallback +=
                 (sender, certificate, chain, sslPolicyErrors) => true;
         }
 
-        public Http2Connection (Http2ConnectionSettings connectionSettings, IStreamManager streamManager, IFlowControlManager flowControlManager)
+        public Http2Connection(Http2ConnectionSettings connectionSettings, IStreamManager streamManager, IFlowControlManager flowControlManager)
         {
             this.flowControlManager = flowControlManager;
             this.streamManager = streamManager;
 
             ConnectionSettings = connectionSettings;
-            Settings = new Http2Settings ();
+            Settings = new Http2Settings();
 
-            queue = new FrameQueue (flowControlManager);
+            queue = new FrameQueue(flowControlManager);
         }
 
         public Http2Settings Settings { get; private set; }
@@ -74,13 +74,11 @@ namespace HttpTwo
         SslStream sslStream;
 
         long receivedDataCount = 0;
-        public uint ReceivedDataCount {
-            get { return (uint)Interlocked.Read (ref receivedDataCount); }
-        }
+        public uint ReceivedDataCount => (uint)Interlocked.Read(ref receivedDataCount);
 
-        public async Task Connect ()
+        public async Task Connect()
         {
-            if (IsConnected ())
+            if (IsConnected())
                 return;
 
             tcp = new TcpClient
@@ -124,20 +122,20 @@ namespace HttpTwo
 
                 clientStream = sslStream;
             } else {
-                clientStream = tcp.GetStream ();
+                clientStream = tcp.GetStream();
             }
 
             // Ensure we have a size for the stream '0'
-            flowControlManager.GetWindowSize (0);
+            flowControlManager.GetWindowSize(0);
 
             // Send out preface data
-            var prefaceData = System.Text.Encoding.ASCII.GetBytes (ConnectionPreface);
+            var prefaceData = System.Text.Encoding.ASCII.GetBytes(ConnectionPreface);
             await clientStream.WriteAsync (prefaceData, 0, prefaceData.Length).ConfigureAwait (false);
             await clientStream.FlushAsync ().ConfigureAwait (false);
-            
+
             // Start reading the stream on another thread
             var readTask = Task.Factory.StartNew (() => {
-                try { read (); }
+                try { Read (); }
                 catch (Exception ex) {
                     Log.Debug ("Read error: " + ex);
                     Disconnect ();
@@ -150,7 +148,7 @@ namespace HttpTwo
             }, TaskContinuationOptions.OnlyOnFaulted).Forget ();
 
             // Start a thread to handle writing queued frames to the stream
-            var writeTask = Task.Factory.StartNew (write, TaskCreationOptions.LongRunning);
+            var writeTask = Task.Factory.StartNew (Write, TaskCreationOptions.LongRunning);
             writeTask.ContinueWith (t => {
                 // TODO: Handle the error
                 Disconnect ();
@@ -166,7 +164,7 @@ namespace HttpTwo
 
         public void Disconnect ()
         {
-            // complete the blocking collection 
+            // complete the blocking collection
             queue.Complete ();
 
             // We want to clean up the connection here so let's just try to close/dispose
@@ -209,10 +207,7 @@ namespace HttpTwo
 
         readonly SemaphoreSlim lockWrite = new SemaphoreSlim (1);
 
-        public async Task QueueFrame (IFrame frame)
-        {
-            await queue.Enqueue (frame).ConfigureAwait (false);
-        }
+        public async Task QueueFrame(IFrame frame) => await queue.Enqueue(frame).ConfigureAwait(false);
 
         public async Task FreeUpWindowSpace ()
         {
@@ -220,7 +215,7 @@ namespace HttpTwo
 
             if (sizeToFree <= 0)
                 return;
-            
+
             await QueueFrame (new WindowUpdateFrame {
                 StreamIdentifier = 0,
                 WindowSizeIncrement = (uint)sizeToFree
@@ -229,10 +224,10 @@ namespace HttpTwo
 
         readonly List<byte> buffer = new List<byte> ();
 
-        async void read ()
+        async void Read()
         {
             int rx;
-            byte[] b = new byte[4096];
+            var b = new byte[4096];
 
             while (true) {
 
@@ -244,12 +239,12 @@ namespace HttpTwo
 
                 if (rx > 0) {
                     // Add all the bytes read into our buffer list
-                    for (int i = 0; i < rx; i++)
+                    for (var i = 0; i < rx; i++)
                         buffer.Add (b [i]);
 
-                    while (true) 
+                    while (true)
                     {
-                        // We need at least 9 bytes to process the frame 
+                        // We need at least 9 bytes to process the frame
                         // 9 octets is the frame header length
                         if (buffer.Count < 9)
                             break;
@@ -265,7 +260,7 @@ namespace HttpTwo
                         var frameLength = BitConverter.ToUInt32 (flen.EnsureBigEndian (), 0);
 
                         // If we are expecting a payload that's bigger than what's in our buffer
-                        // we should keep reading from the stream 
+                        // we should keep reading from the stream
                         if (buffer.Count - 9 < frameLength)
                             break;
 
@@ -280,7 +275,7 @@ namespace HttpTwo
                         // we need to turn the stream id into a uint
                         var frameStreamIdData = new byte[4];
                         Array.Copy (data, 5, frameStreamIdData, 0, 4);
-                        uint frameStreamId = Util.ConvertFromUInt31 (frameStreamIdData.EnsureBigEndian ());
+                        var frameStreamId = Util.ConvertFromUInt31 (frameStreamIdData.EnsureBigEndian ());
 
                         // Create a new typed instance of our abstract Frame
                         var frame = Frame.Create ((FrameType)frameType);
@@ -304,7 +299,7 @@ namespace HttpTwo
                             // Update our instance of settings with the new data
                             Settings.UpdateFromFrame (settingsFrame, flowControlManager);
 
-                            // See if this was an ack, if not, return an empty 
+                            // See if this was an ack, if not, return an empty
                             // ack'd settings frame
                             if (!settingsFrame.Ack)
                                 await QueueFrame (new SettingsFrame { Ack = true }).ConfigureAwait (false);
@@ -340,7 +335,7 @@ namespace HttpTwo
             Disconnect();
         }
 
-        async Task write ()
+        async Task Write ()
         {
             foreach (var frame in queue.GetConsumingEnumerable ()) {
                 if (frame == null) {

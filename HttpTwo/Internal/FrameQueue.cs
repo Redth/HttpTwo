@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -19,10 +19,10 @@ namespace HttpTwo.Internal
 
             // Signal the possible presence of data in the queue if the window size increases
             // to allow any paused frames to be sent
-            this.flowControlManager.FlowControlWindowSizeIncreased += (streamIdentifier, increasedByAmount) => 
+            this.flowControlManager.FlowControlWindowSizeIncreased += (streamIdentifier, increasedByAmount) =>
                 waitAny.Set ();
 
-            // Add our priority lists 
+            // Add our priority lists
             frameQueues = new Dictionary<int, List<IFrame>> ();
             foreach (var p in PRIORITIES)
                 frameQueues.Add (p, new List<IFrame> ());
@@ -67,7 +67,7 @@ namespace HttpTwo.Internal
 
                 // attempt to dequeue a frame
                 // this could be null if our queue is paused
-                result = dequeue ();
+                result = Dequeue ();
 
                 // If null, queue was paused, so let's keep waiting
                 // reset our handle and loop again
@@ -78,12 +78,9 @@ namespace HttpTwo.Internal
             }
         }
 
-        public void Complete ()
-        {
-            cancelTokenSource.Cancel ();
-        }
+        public void Complete() => cancelTokenSource.Cancel();
 
-        IFrame dequeue ()
+        IFrame Dequeue ()
         {
             IFrame result = null;
 
@@ -94,7 +91,7 @@ namespace HttpTwo.Internal
 
                 if (frames.Count > 0) {
 
-                    int frameIndex = -1; // counter of position in the loop
+                    var frameIndex = -1; // counter of position in the loop
 
                     // Loop until we find a frame that we can send (if so)
                     foreach (var frame in frames) {
@@ -111,7 +108,7 @@ namespace HttpTwo.Internal
                             if (flowControlManager.GetWindowSize (0) - frame.PayloadLength < 0
                                 || flowControlManager.GetWindowSize (frame.StreamIdentifier) - frame.PayloadLength < 0)
                                 continue;
-                            
+
                         } else if (frame.Type == FrameType.Headers || frame.Type == FrameType.Continuation) {
 
                             // If we have HEADERS or CONTINUATION frames these are considered trailers and could appear after

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Specialized;
 using System.IO;
 using System.Threading.Tasks;
@@ -9,15 +9,12 @@ namespace HttpTwo.Internal
     {
         public static byte ClearBit (byte target, int bitIndex)
         {
-            int x = Convert.ToInt32(target);
+            var x = Convert.ToInt32(target);
             x &= ~(1 << bitIndex);
             return Convert.ToByte(x);
         }
 
-        public static bool IsBitSet (byte target, int bitIndex)
-        {
-            return (target & (1 << bitIndex)) != 0;
-        }
+        public static bool IsBitSet(byte target, int bitIndex) => (target & (1 << bitIndex)) != 0;
 
         public static byte[] ConvertToUInt31 (uint original)
         {
@@ -32,7 +29,7 @@ namespace HttpTwo.Internal
         {
             if (data.Length != 4)
                 return 0;
-            
+
             data[3] = Util.ClearBit (data[3], 7);
 
             return BitConverter.ToUInt32 (data, 0);
@@ -40,7 +37,7 @@ namespace HttpTwo.Internal
 
         public static byte[] PackHeaders (NameValueCollection headers, uint maxHeaderTableSize)
         {
-            byte[] headerData = new byte[0];
+            var headerData = new byte[0];
 
             // Header Block Fragments
             var hpackEncoder = new HPack.Encoder ((int)maxHeaderTableSize);
@@ -70,9 +67,9 @@ namespace HttpTwo.Internal
             var hpackDecoder = new HPack.Decoder (maxHeaderSize, maxHeaderTableSize);
             using(var binReader = new BinaryReader (new MemoryStream (data))) {
 
-                hpackDecoder.Decode(binReader, (name, value, sensitive) => 
+                hpackDecoder.Decode(binReader, (name, value, sensitive) =>
                     headers.Add (
-                        System.Text.Encoding.ASCII.GetString (name), 
+                        System.Text.Encoding.ASCII.GetString (name),
                         System.Text.Encoding.ASCII.GetString (value)));
 
                 hpackDecoder.EndHeaderBlock(); // this must be called to finalize the decoding process.

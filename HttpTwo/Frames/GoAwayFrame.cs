@@ -10,9 +10,7 @@ namespace HttpTwo
         public uint ErrorCode { get;set; }
         public byte[] AdditionalDebugData { get; set; }
 
-        public override FrameType Type {
-            get { return FrameType.GoAway; }
-        }
+        public override FrameType Type => FrameType.GoAway;
 
         public override IEnumerable<byte> Payload {
             get {
@@ -33,13 +31,13 @@ namespace HttpTwo
         public override void ParsePayload (byte[] payloadData, FrameHeader frameHeader)
         {
             // we need to turn the stream id into a uint
-            var frameStreamIdData = new byte[4]; 
+            var frameStreamIdData = new byte[4];
             Array.Copy (payloadData, 0, frameStreamIdData, 0, 4);
             LastStreamId = Util.ConvertFromUInt31 (frameStreamIdData.EnsureBigEndian ());
 
             var errorCodeData = new byte[4];
             Array.Copy (payloadData, 4, errorCodeData, 0, 4);
-            uint errorCode = BitConverter.ToUInt32 (errorCodeData.EnsureBigEndian (), 0);
+            var errorCode = BitConverter.ToUInt32 (errorCodeData.EnsureBigEndian (), 0);
             ErrorCode = errorCode;
 
             if (payloadData.Length > 8)
@@ -54,11 +52,11 @@ namespace HttpTwo
             var debug = string.Empty;
             if (AdditionalDebugData != null && AdditionalDebugData.Length > 0)
                 debug = System.Text.Encoding.ASCII.GetString (AdditionalDebugData);
-            
-            return string.Format ("[Frame: GOAWAY, Id={0}, ErrorCode={1}, LastStreamId={2}, AdditionalDebugData={3}]", 
-                StreamIdentifier, 
-                ErrorCode, 
-                LastStreamId, 
+
+            return string.Format ("[Frame: GOAWAY, Id={0}, ErrorCode={1}, LastStreamId={2}, AdditionalDebugData={3}]",
+                StreamIdentifier,
+                ErrorCode,
+                LastStreamId,
                 debug);
         }
     }

@@ -11,25 +11,13 @@ namespace HttpTwo.Internal
 
         public static ILogger Logger { get;set; }
 
-        public static void Info (string format, params object[] args)
-        {
-            Logger.Info (format, args);
-        }
+        public static void Info(string format, params object[] args) => Logger.Info(format, args);
 
-        public static void Debug (string format, params object[] args)
-        {
-            Logger.Debug (format, args);
-        }
+        public static void Debug(string format, params object[] args) => Logger.Debug(format, args);
 
-        public static void Warn (string format, params object[] args)
-        {
-            Logger.Warn (format, args);
-        }
+        public static void Warn(string format, params object[] args) => Logger.Warn(format, args);
 
-        public static void Error (string format, params object[] args)
-        {
-            Logger.Error (format, args);
-        }
+        public static void Error(string format, params object[] args) => Logger.Error(format, args);
     }
 
     public class DefaultLogger : ILogger
@@ -39,31 +27,28 @@ namespace HttpTwo.Internal
         public void Info (string format, params object[] args)
         {
             if (Level >= LogLevel.Info)
-                write (string.Format (format, args));
+                Write (string.Format (format, args));
         }
 
         public void Debug (string format, params object[] args)
         {
             if (Level >= LogLevel.Debug)
-                write (string.Format (format, args));
+                Write (string.Format (format, args));
         }
 
         public void Warn (string format, params object[] args)
         {
             if (Level >= LogLevel.Warn)
-                write (string.Format (format, args));
+                Write (string.Format (format, args));
         }
 
         public void Error (string format, params object[] args)
         {
             if (Level >= LogLevel.Error)
-                write (string.Format (format, args));
+                Write (string.Format (format, args));
         }
 
-        void write (string format, params object[] args)
-        {
-            Console.WriteLine (DateTime.Now.ToString ("hh:MM:ss.fff tt") + ": " + string.Format (format, args));
-        }
+        void Write(string format, params object[] args) => Console.WriteLine(DateTime.Now.ToString("hh:MM:ss.fff tt") + ": " + string.Format(format, args));
     }
 
     public interface ILogger

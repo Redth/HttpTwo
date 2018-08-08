@@ -58,16 +58,9 @@ namespace HttpTwo
             return null;
         }
 
-        protected Frame ()
-        {
-            Flags = (byte)0;
-        }
+        protected Frame() => Flags = (byte)0;
 
-        public uint Length { 
-            get {
-                return PayloadLength;
-            }
-        }
+        public uint Length => PayloadLength;
 
         public abstract FrameType Type { get; }
 
@@ -87,12 +80,8 @@ namespace HttpTwo
             }
         }
 
-        public bool IsEndStream {
-            get {
-                return (Type == FrameType.Data || Type == FrameType.Headers)
+        public bool IsEndStream => (Type == FrameType.Data || Type == FrameType.Headers)
                         && (Flags & 0x1) == 0x1;
-            }
-        }
 
         byte[] To24BitInt (uint original)
         {
@@ -144,7 +133,7 @@ namespace HttpTwo
             var frameLength = BitConverter.ToUInt32 (flen.EnsureBigEndian (), 0);
 
             // If we are expecting a payload that's bigger than what's in our buffer
-            // we should keep reading from the stream 
+            // we should keep reading from the stream
             if (data.Length - 9 < frameLength)
                 throw new InvalidDataException ("Length of data[] does not match frame length in data");
 
@@ -152,7 +141,7 @@ namespace HttpTwo
             var frameFlags = data [4]; // 5th byte is FLAGS
 
             // we need to turn the stream id into a uint
-            var frameStreamIdData = new byte[4]; 
+            var frameStreamIdData = new byte[4];
             Array.Copy (data, 5, frameStreamIdData, 0, 4);
             this.StreamIdentifier = Util.ConvertFromUInt31 (frameStreamIdData.EnsureBigEndian ());
 
@@ -175,10 +164,7 @@ namespace HttpTwo
 
         public abstract void ParsePayload (byte[] payloadData, FrameHeader frameHeader);
 
-        public override string ToString ()
-        {
-            return string.Format ("[Frame: {0}, Id={1}, Flags={2}, PayloadLength={3}, IsEndStream={4}]", Type.ToString ().ToUpperInvariant (), StreamIdentifier, Flags, PayloadLength, IsEndStream);
-        }
+        public override string ToString() => string.Format("[Frame: {0}, Id={1}, Flags={2}, PayloadLength={3}, IsEndStream={4}]", Type.ToString().ToUpperInvariant(), StreamIdentifier, Flags, PayloadLength, IsEndStream);
     }
 
     public enum FrameType
