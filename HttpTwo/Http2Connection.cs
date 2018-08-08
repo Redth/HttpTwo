@@ -83,22 +83,44 @@ namespace HttpTwo
             if (IsConnected ())
                 return;
 
-            tcp = new TcpClient ();
+            tcp = new TcpClient
+            {
+                // Disable Nagle for HTTP/2
+                NoDelay = true
+            };
 
-            // Disable Nagle for HTTP/2
-            tcp.NoDelay = true;
+            await tcp.ConnectAsync(ConnectionSettings.Host, (int)ConnectionSettings.Port).ConfigureAwait(false);
 
-            await tcp.ConnectAsync (ConnectionSettings.Host, (int)ConnectionSettings.Port).ConfigureAwait (false);
-
-            if (ConnectionSettings.UseTls) {
-                sslStream = new SslStream (tcp.GetStream (), false, 
+            if (ConnectionSettings.UseTls)
+            {
+                sslStream = new SslStream(tcp.GetStream(), false,
                     (sender, certificate, chain, sslPolicyErrors) => true);
-                
-                await sslStream.AuthenticateAsClientAsync (
-                    ConnectionSettings.Host, 
-                    ConnectionSettings.Certificates ?? new X509CertificateCollection (), 
-                    System.Security.Authentication.SslProtocols.Tls12, 
-                    false).ConfigureAwait (false);
+
+#if NETCOREAPP2_1
+                // .NET Core 2.1 introduces SslClientAuthenticationOptions
+                // which allows us to set the SslApplicationProtocol (ALPN) which
+                // for HTTP/2 is required, and should be set to h2 for direct to TLS connections
+                // (h2c should be set for upgraded connections)
+                var authOptions = new SslClientAuthenticationOptions
+                {
+                    ApplicationProtocols = new List<SslApplicationProtocol> { SslApplicationProtocol.Http2 }, // ALPN h2
+                    EnabledSslProtocols = System.Security.Authentication.SslProtocols.Tls12,
+                    TargetHost = ConnectionSettings.Host,
+                    ClientCertificates = ConnectionSettings.Certificates ?? new X509CertificateCollection()
+                };
+
+                await sslStream.AuthenticateAsClientAsync(
+                    authOptions,
+                    new CancellationToken(false))
+                               .ConfigureAwait(false);
+#else
+                // Fall back to no ALPN support for frameworks which don't support it
+                await sslStream.AuthenticateAsClientAsync(
+                    ConnectionSettings.Host,
+                    ConnectionSettings.Certificates ?? new X509CertificateCollection(),
+                    System.Security.Authentication.SslProtocols.Tls12,
+                    false).ConfigureAwait(false);
+#endif
 
                 clientStream = sslStream;
             } else {
