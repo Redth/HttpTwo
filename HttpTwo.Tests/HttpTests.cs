@@ -1,4 +1,4 @@
-﻿using NUnit.Framework;
+﻿using Xunit;
 using System;
 using System.Net.Http;
 using System.Collections.Specialized;
@@ -7,15 +7,13 @@ using HttpTwo.Internal;
 
 namespace HttpTwo.Tests
 {
-    [TestFixture]
-    public class HttpTests
+	public class HttpTests : IDisposable
     {
         const bool UseInternalHttpRunner = true;
 
         NodeHttp2Runner node;
 
-        [TestFixtureSetUp]
-        public void Setup ()
+        public HttpTests ()
         {
             // Setup logger 
             Log.Logger = new ConsoleLogger { Level = LogLevel.Info };
@@ -30,14 +28,13 @@ namespace HttpTwo.Tests
             }
         }
 
-        [TestFixtureTearDown]
-        public void Teardown ()
+        public void Dispose ()
         {     
             if (UseInternalHttpRunner)
                 node.StopServer ();
         }
 
-        [Test]
+        [Fact]
         public async void Get_Single_Html_Page ()
         {
             var http2MsgHandler = new Http2MessageHandler ();
@@ -45,8 +42,8 @@ namespace HttpTwo.Tests
 
             var data = await http.GetStringAsync ("http://localhost:8999/index.html");
 
-            Assert.IsNotNullOrEmpty (data);
-            Assert.IsTrue (data.Contains ("Hello World"));
+            Assert.NotEmpty (data);
+            Assert.True (data.Contains ("Hello World"));
         }
 
         //[Test]
@@ -57,11 +54,11 @@ namespace HttpTwo.Tests
 
             var data = await http.GetStringAsync ("https://localhost:8999/index.html");
 
-            Assert.IsNotNullOrEmpty (data);
-            Assert.IsTrue (data.Contains ("Hello World"));
+            Assert.NotEmpty (data);
+            Assert.True (data.Contains ("Hello World"));
         }
 
-        [Test]
+        [Fact]
         public async void Get_Multiple_Html_Pages ()
         {
             var http2MsgHandler = new Http2MessageHandler ();
@@ -70,13 +67,13 @@ namespace HttpTwo.Tests
             for (int i = 0; i < 3; i++) {
                 var data = await http.GetStringAsync ("http://localhost:8999/index.html");
 
-                Assert.IsNotNullOrEmpty (data);
-                Assert.IsTrue (data.Contains ("Hello World"));
+                Assert.NotEmpty (data);
+                Assert.True (data.Contains ("Hello World"));
             }
         }
 
 
-        [Test]
+        [Fact]
         public async void Settings_Disable_Push_Promise ()
         {
             var url = new Uri ("http://localhost:8999/index.html");
@@ -104,11 +101,11 @@ namespace HttpTwo.Tests
 
             await semaphoreSettings.WaitAsync (cancelTokenSource.Token);
 
-            Assert.IsTrue (didAck);
+            Assert.True (didAck);
         }
 
 
-        [Test]
+        [Fact]
         public async void Get_Send_Headers_With_Continuation ()
         {
             var uri = new Uri ("http://localhost:8999/index.html");
@@ -123,11 +120,11 @@ namespace HttpTwo.Tests
 
             var data = System.Text.Encoding.ASCII.GetString (response.Body);
 
-            Assert.IsNotNullOrEmpty (data);
-            Assert.IsTrue (data.Contains ("Hello World"));
+            Assert.NotEmpty (data);
+            Assert.True (data.Contains ("Hello World"));
         }
 
-        [Test]
+        [Fact]
         public async void Ping ()
         {
             var uri = new Uri ("http://localhost:8999/index.html");
@@ -140,10 +137,10 @@ namespace HttpTwo.Tests
 
             var pong = await http.Ping (data, cancelTokenSource.Token);
 
-            Assert.IsTrue (pong);
+            Assert.True (pong);
         }
 
-        [Test]
+        [Fact]
         public async void GoAway ()
         {
             var uri = new Uri ("http://localhost:8999/index.html");
@@ -156,7 +153,7 @@ namespace HttpTwo.Tests
 
             var sentGoAway = await http.Disconnect ();
 
-            Assert.IsTrue (sentGoAway);
+            Assert.True (sentGoAway);
         }
     }
 }
