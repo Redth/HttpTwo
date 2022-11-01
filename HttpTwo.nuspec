@@ -6,8 +6,8 @@
         <title>HttpTwo</title>
         <authors>Redth,Neio,silentdth</authors>
         <owners>Redth,Neio,silentdth</owners>
-        <projectUrl>https://github.com/silentdth/HttpTwo</projectUrl>
-        <iconUrl>https://raw.githubusercontent.com/silentdth/HttpTwo/master/HttpTwo-Icon.png</iconUrl>
+        <projectUrl>https://github.com/neio/HttpTwo</projectUrl>
+        <iconUrl>https://raw.githubusercontent.com/neio/HttpTwo/master/HttpTwo-Icon.png</iconUrl>
         <requireLicenseAcceptance>false</requireLicenseAcceptance>
         <description>HTTP/2 C# Client Side Implementation</description>
         <summary>HTTP/2 C# Client Side Implementation</summary>
