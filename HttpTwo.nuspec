@@ -20,7 +20,7 @@
         </dependencies>
     </metadata>
     <files>
-        <file src="HttpTwo.dll" target="lib\net45\HttpTwo.dll" />
-        <file src="HPack.dll" target="lib\net45\HttpTwo.HPack.dll" />
+        <file src="HttpTwo.dll" target="lib\net462\HttpTwo.dll" />
+        <file src="HPack.dll" target="lib\net462\HttpTwo.HPack.dll" />
     </files>
 </package>

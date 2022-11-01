@@ -332,7 +332,7 @@ namespace HttpTwo
                             frame.Parse (data);
                         } catch (Exception ex) {
                             Log.Error ("Parsing Frame Failed: {0}", ex);
-                            throw ex;
+                            throw;
                         }
 
                         Log.Debug ("<- {0}", frame);
