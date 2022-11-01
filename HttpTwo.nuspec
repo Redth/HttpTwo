@@ -4,17 +4,16 @@
         <id>HttpTwo</id>
         <version>$version$</version>
         <title>HttpTwo</title>
-        <authors>Redth</authors>
-        <owners>Redth</owners>
-        <licenseUrl>http://www.apache.org/licenses/LICENSE-2.0.txt</licenseUrl>
-        <projectUrl>https://github.com/Redth/HttpTwo</projectUrl>
-        <iconUrl>https://raw.githubusercontent.com/Redth/HttpTwo/master/HttpTwo-Icon.png</iconUrl>
+        <authors>Redth,Neio,silentdth</authors>
+        <owners>Redth,Neio,silentdth</owners>
+        <projectUrl>https://github.com/silentdth/HttpTwo</projectUrl>
+        <iconUrl>https://raw.githubusercontent.com/silentdth/HttpTwo/master/HttpTwo-Icon.png</iconUrl>
         <requireLicenseAcceptance>false</requireLicenseAcceptance>
         <description>HTTP/2 C# Client Side Implementation</description>
         <summary>HTTP/2 C# Client Side Implementation</summary>
         <releaseNotes>
         </releaseNotes>
-        <copyright>2012-2016 Redth</copyright>
+        <copyright>2012-2022 Redth,Neio,silentdth</copyright>
         <language>en-US</language>
         <tags>HTTP, HTTP2, HTTP/2, HTTPTWO, Http Two, HTTP 2, HTTP.2, HTTP_2, HTTP-2</tags>
         <dependencies>

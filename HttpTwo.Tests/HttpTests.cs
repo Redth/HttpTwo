@@ -3,6 +3,7 @@ using System;
 using System.Net.Http;
 using System.Collections.Specialized;
 using System.Threading;
+using System.Threading.Tasks;
 using HttpTwo.Internal;
 
 namespace HttpTwo.Tests
@@ -14,7 +15,7 @@ namespace HttpTwo.Tests
 
         NodeHttp2Runner node;
 
-        [TestFixtureSetUp]
+        [OneTimeSetUp]
         public void Setup ()
         {
             // Setup logger 
@@ -30,7 +31,7 @@ namespace HttpTwo.Tests
             }
         }
 
-        [TestFixtureTearDown]
+        [OneTimeTearDown]
         public void Teardown ()
         {     
             if (UseInternalHttpRunner)
@@ -38,31 +39,33 @@ namespace HttpTwo.Tests
         }
 
         [Test]
-        public async void Get_Single_Html_Page ()
+        public async Task Get_Single_Html_Page ()
         {
             var http2MsgHandler = new Http2MessageHandler ();
             var http = new HttpClient (http2MsgHandler);
 
             var data = await http.GetStringAsync ("http://localhost:8999/index.html");
 
-            Assert.IsNotNullOrEmpty (data);
+            Assert.IsNotNull (data);
+            Assert.IsNotEmpty(data);
             Assert.IsTrue (data.Contains ("Hello World"));
         }
 
         //[Test]
-        public async void Get_Single_Html_Page_Https ()
+        public async Task Get_Single_Html_Page_Https ()
         {
             var http2MsgHandler = new Http2MessageHandler ();
             var http = new HttpClient (http2MsgHandler);
 
             var data = await http.GetStringAsync ("https://localhost:8999/index.html");
 
-            Assert.IsNotNullOrEmpty (data);
+            Assert.IsNotNull (data);
+            Assert.IsNotEmpty(data);
             Assert.IsTrue (data.Contains ("Hello World"));
         }
 
         [Test]
-        public async void Get_Multiple_Html_Pages ()
+        public async Task Get_Multiple_Html_Pages ()
         {
             var http2MsgHandler = new Http2MessageHandler ();
             var http = new HttpClient (http2MsgHandler);
@@ -70,14 +73,15 @@ namespace HttpTwo.Tests
             for (int i = 0; i < 3; i++) {
                 var data = await http.GetStringAsync ("http://localhost:8999/index.html");
 
-                Assert.IsNotNullOrEmpty (data);
+                Assert.IsNotNull (data);
+                Assert.IsNotEmpty(data);
                 Assert.IsTrue (data.Contains ("Hello World"));
             }
         }
 
 
         [Test]
-        public async void Settings_Disable_Push_Promise ()
+        public async Task Settings_Disable_Push_Promise ()
         {
             var url = new Uri ("http://localhost:8999/index.html");
             var settings = new Http2ConnectionSettings (url) { DisablePushPromise = true };
@@ -109,7 +113,7 @@ namespace HttpTwo.Tests
 
 
         [Test]
-        public async void Get_Send_Headers_With_Continuation ()
+        public async Task Get_Send_Headers_With_Continuation ()
         {
             var uri = new Uri ("http://localhost:8999/index.html");
             var http = new Http2Client (uri);
@@ -123,12 +127,13 @@ namespace HttpTwo.Tests
 
             var data = System.Text.Encoding.ASCII.GetString (response.Body);
 
-            Assert.IsNotNullOrEmpty (data);
+            Assert.IsNotNull (data);
+            Assert.IsNotEmpty(data);
             Assert.IsTrue (data.Contains ("Hello World"));
         }
 
         [Test]
-        public async void Ping ()
+        public async Task Ping ()
         {
             var uri = new Uri ("http://localhost:8999/index.html");
             var http = new Http2Client (uri);
@@ -144,7 +149,7 @@ namespace HttpTwo.Tests
         }
 
         [Test]
-        public async void GoAway ()
+        public async Task GoAway ()
         {
             var uri = new Uri ("http://localhost:8999/index.html");
             var http = new Http2Client (uri);
