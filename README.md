@@ -6,7 +6,7 @@ The focus of this library is to bring enough HTTP/2 functionality to .NET for im
 
 [![Join the chat at https://gitter.im/Redth/HttpTwo](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/Redth/HttpTwo?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-[![AppVeyor CI Status](https://ci.appveyor.com/api/projects/status/github/silentdth/HttpTwo?svg=true)](https://ci.appveyor.com/project/silentdth/httptwo)
+[![AppVeyor CI status](https://ci.appveyor.com/api/projects/status/8rfu02wnvmv2gwqu?svg=true)](https://ci.appveyor.com/project/Neio/httptwo)
 
 It's currently not very well tested and lacks some implementation details.
 
